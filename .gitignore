@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local configuration and databases
+.env*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
