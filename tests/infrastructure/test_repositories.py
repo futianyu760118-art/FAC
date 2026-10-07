@@ -156,3 +156,35 @@ def test_event_migration_preserves_legacy_row_and_adds_replay_identity(tmp_path,
                  '2026-10-07 00:00:00', 'legacy-event-1', 'new-key')
         """)
         )
+
+
+def test_event_migration_avoids_generated_id_and_key_collisions(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'collision.db'}"
+    monkeypatch.setenv("FAC_DATABASE_URL", database_url)
+    config = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+    command.upgrade(config, "0001_fac_core")
+    engine = make_engine(database_url)
+    with engine.begin() as connection:
+        connection.execute(
+            text("""
+            INSERT INTO event_records
+                (id, tenant_id, object_id, source_system, revision, payload,
+                 created_at, updated_at)
+            VALUES
+                (1, 'tenant-a', 'ORD-1', 'fac', 1, '{"state": "missing"}',
+                 '2026-10-07 00:00:00', '2026-10-07 00:00:00'),
+                (2, 'tenant-a', 'ORD-2', 'fac', 1,
+                 '{"event_id": "legacy-event-1", "idempotency_key": "legacy-key-1"}',
+                 '2026-10-07 00:00:00', '2026-10-07 00:00:00')
+        """)
+        )
+    command.upgrade(config, "head")
+    command.upgrade(config, "head")
+    with engine.connect() as connection:
+        rows = connection.execute(
+            text("SELECT id, event_id, idempotency_key FROM event_records ORDER BY id")
+        ).all()
+    assert [(row.id, row.event_id, row.idempotency_key) for row in rows] == [
+        (1, "legacy-event-1-1", "legacy-key-1-1"),
+        (2, "legacy-event-1", "legacy-key-1"),
+    ]
