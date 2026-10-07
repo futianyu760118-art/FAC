@@ -2,7 +2,8 @@
 
 import hashlib
 import json
-from dataclasses import asdict, is_dataclass
+from collections.abc import Mapping
+from dataclasses import fields, is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -15,9 +16,9 @@ def _canonical(value: Any) -> Any:
         return {"$decimal": str(value)}
     if isinstance(value, (datetime, date)):
         return value.isoformat()
-    if is_dataclass(value):
-        return asdict(value)
-    if isinstance(value, dict):
+    if is_dataclass(value) and not isinstance(value, type):
+        return _canonical({field.name: getattr(value, field.name) for field in fields(value)})
+    if isinstance(value, Mapping):
         return {str(key): _canonical(item) for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))}
     if isinstance(value, (list, tuple)):
         return [_canonical(item) for item in value]
