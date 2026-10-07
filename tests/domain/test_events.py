@@ -124,3 +124,30 @@ def test_idempotency_canonicalizes_dataclass_fields_recursively() -> None:
     )
 
     assert key.startswith("sha256:")
+
+
+def test_set_payloads_have_deterministic_idempotency_keys() -> None:
+    first_values = event_values()
+    first_values["payload"] = {"amounts": {Decimal("2.00"), Decimal("1.00")}}
+    second_values = event_values()
+    second_values["payload"] = {"amounts": {Decimal("1.00"), Decimal("2.00")}}
+    first_event = EventEnvelope(**first_values)
+    second_event = EventEnvelope(**second_values)
+
+    first_key = deterministic_idempotency_key(
+        first_event.event_type,
+        first_event.object_ref,
+        first_event.version,
+        first_event.payload_version,
+        first_event.payload,
+    )
+    second_key = deterministic_idempotency_key(
+        second_event.event_type,
+        second_event.object_ref,
+        second_event.version,
+        second_event.payload_version,
+        second_event.payload,
+    )
+
+    assert first_key == second_key
+    assert first_key.startswith("sha256:")
