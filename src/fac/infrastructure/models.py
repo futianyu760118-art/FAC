@@ -54,4 +54,9 @@ class Evidence(RevisionedRecord, Base):
 
 class EventRecord(RevisionedRecord, Base):
     __tablename__ = "event_records"
-    __table_args__ = (UniqueConstraint("tenant_id", "object_id", "source_system", "revision"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "event_id"),
+        UniqueConstraint("tenant_id", "idempotency_key"),
+    )
+    event_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(256), nullable=False)

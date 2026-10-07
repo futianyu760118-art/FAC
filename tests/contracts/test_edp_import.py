@@ -89,3 +89,42 @@ def test_import_route_returns_counts_and_reasons(tmp_path):
     assert response.json()["accepted_count"] == 7
     assert response.json()["rejected_count"] == 1
     assert response.json()["rejected"][0]["object_id"] == "BAD-ORDER"
+
+
+def test_malformed_numeric_and_structured_ids_return_rejections_without_rollback(tmp_path):
+    factory = _session(tmp_path)
+    raw = _payload()
+    raw["orders"].extend([{"object_id": 123}, {"object_id": {"key": "value"}}])
+    response = TestClient(create_app(session_factory=factory)).post(
+        "/api/v1/import/edp-fixture", json=raw
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["accepted_count"] == 7
+    assert body["rejected_count"] == 2
+    assert [item["object_id"] for item in body["rejected"]] == ["123", '{"key": "value"}']
+    assert all(item["reasons"] for item in body["rejected"])
+    with factory() as session:
+        assert (
+            EdpRepository(session).get("tenant-a", ObjectRef("Order", "ORD-001", "edp-mock", 1))
+            is not None
+        )
+
+
+def test_changed_price_at_same_revision_is_rejected_and_original_preserved(tmp_path):
+    factory = _session(tmp_path)
+    raw = _payload()
+    with factory() as session:
+        EdpAdapter(session).import_fixture(EdpFixture.model_validate(raw))
+        changed = _payload()
+        changed["material_prices"][0]["unit_price"]["amount"] = "999"
+        report = EdpAdapter(session).import_fixture(EdpFixture.model_validate(changed))
+        assert report.accepted_count == 0
+        assert report.skipped_count == 6
+        assert report.rejected_count == 1
+        assert report.rejected[0].object_id == "PRICE-001"
+        assert report.rejected[0].reasons[0]["code"] == "revision_conflict"
+        price = EdpRepository(session).get(
+            "tenant-a", ObjectRef("MaterialPrice", "PRICE-001", "edp-mock", 1)
+        )
+        assert price.payload["unit_price"]["amount"] == "20"

@@ -1,5 +1,7 @@
 """Per-object validation and import of local EDP fixture data."""
 
+import json
+
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
@@ -15,7 +17,7 @@ from fac.adapters.edp_mock.models import (
     RejectedObject,
 )
 from fac.contracts.common import ObjectRef
-from fac.infrastructure.repositories import EdpRepository
+from fac.infrastructure.repositories import EdpRepository, RevisionConflict
 
 
 class EdpAdapter:
@@ -39,10 +41,15 @@ class EdpAdapter:
                     try:
                         item = schema.model_validate(raw)
                     except ValidationError as exc:
+                        raw_id = raw.get("object_id") if isinstance(raw, dict) else None
+                        if raw_id is None or isinstance(raw_id, str):
+                            rejected_id = raw_id
+                        else:
+                            rejected_id = json.dumps(raw_id, ensure_ascii=False, sort_keys=True)
                         report.rejected.append(
                             RejectedObject(
                                 object_type=kind,
-                                object_id=raw.get("object_id") if isinstance(raw, dict) else None,
+                                object_id=rejected_id,
                                 reasons=[
                                     {
                                         "field": ".".join(map(str, error["loc"])),
@@ -56,7 +63,25 @@ class EdpAdapter:
                         report.rejected_count += 1
                         continue
                     ref = ObjectRef(kind, item.object_id, item.source_system, item.revision)
-                    if repo.add(payload.tenant_id, ref, item.model_dump(mode="json")):
+                    try:
+                        inserted = repo.add(payload.tenant_id, ref, item.model_dump(mode="json"))
+                    except RevisionConflict as exc:
+                        report.rejected.append(
+                            RejectedObject(
+                                object_type=kind,
+                                object_id=item.object_id,
+                                reasons=[
+                                    {
+                                        "field": "revision",
+                                        "code": "revision_conflict",
+                                        "message": str(exc),
+                                    }
+                                ],
+                            )
+                        )
+                        report.rejected_count += 1
+                        continue
+                    if inserted:
                         report.accepted_count += 1
                     else:
                         report.skipped_count += 1
