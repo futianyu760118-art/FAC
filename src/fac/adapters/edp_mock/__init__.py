@@ -1,0 +1,1 @@
+"""Local EDP fixture adapter."""

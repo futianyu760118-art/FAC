@@ -1,0 +1,1 @@
+"""FAC-owned persistence."""

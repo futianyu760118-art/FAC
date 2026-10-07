@@ -1,0 +1,22 @@
+{
+  "tenant_id": "tenant-a",
+  "orders": [
+    {"object_id": "ORD-001", "source_system": "edp-mock", "revision": 1, "customer_id": "CUST-001", "product_id": "PROD-001", "quantity": "10", "unit_price": {"amount": "120", "currency": "USD"}, "order_date": "2026-10-01"}
+  ],
+  "boms": [
+    {"object_id": "BOM-001", "source_system": "edp-mock", "revision": 1, "product_id": "PROD-001", "lines": [{"material_id": "MAT-001", "quantity": "2", "uom": "kg"}]}
+  ],
+  "material_prices": [
+    {"object_id": "PRICE-001", "source_system": "edp-mock", "revision": 1, "material_id": "MAT-001", "unit_price": {"amount": "20", "currency": "CNY"}, "effective_at": "2026-10-01"}
+  ],
+  "labor": [
+    {"object_id": "LABOR-001", "source_system": "edp-mock", "revision": 1, "product_id": "PROD-001", "hours_per_unit": "0.5", "hourly_rate": {"amount": "40", "currency": "CNY"}}
+  ],
+  "expenses": [
+    {"object_id": "EXP-001", "source_system": "edp-mock", "revision": 1, "product_id": "PROD-001", "expense_per_unit": {"amount": "3", "currency": "EUR"}}
+  ],
+  "fx_rates": [
+    {"object_id": "FX-USD-CNY", "source_system": "edp-mock", "revision": 1, "base_currency": "USD", "quote_currency": "CNY", "rate": "7.20", "rate_type": "spot", "effective_at": "2026-10-01", "evidence_ref": "EDP-FX-USD-001"},
+    {"object_id": "FX-EUR-CNY", "source_system": "edp-mock", "revision": 1, "base_currency": "EUR", "quote_currency": "CNY", "rate": "7.80", "rate_type": "spot", "effective_at": "2026-10-01", "evidence_ref": "EDP-FX-EUR-001"}
+  ]
+}
