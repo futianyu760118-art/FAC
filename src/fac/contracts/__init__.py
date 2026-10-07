@@ -1,0 +1,1 @@
+"""Shared FAC value contracts."""
