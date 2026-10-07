@@ -8,6 +8,7 @@
 
 ## 1. 上位文档
 
+0. `../../architecture/FAC_GUARDRAILS_V1.md` — **FAC 强制架构红线与 PR/Go-No-Go 门禁，优先级高于下位实现文档。**
 1. `../FAC_完整总体方案与分阶段实施计划_V2.1.md` — FAC 完整终局方案与九个月实施路线。
 2. `../FAC_第一阶段_MVP_开发执行方案_V1.1.md` — 第一阶段 MVP 开发执行基线。
 3. `../FAC_行动计划_V1.0.md` — 历史行动计划，保留用于版本追溯。
@@ -67,6 +68,8 @@ W8 UAT + Go/No-Go
 ```
 
 ## 4. 开发红线
+
+> 完整强制条款见 `../../architecture/FAC_GUARDRAILS_V1.md`。以下仅为摘要；发生冲突时以 Guardrails 文件为准。
 
 - FAC 不得直接连接 ERP/SPC/CRM/HR/Bank。
 - 所有跨系统数据必须先进入 EDP。
