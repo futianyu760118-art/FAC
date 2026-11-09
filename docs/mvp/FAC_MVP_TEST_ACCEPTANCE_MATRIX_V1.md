@@ -21,6 +21,15 @@ UAT  Business Acceptance
 - CT-05 Evidence：link/checksum/reverse trace。
 - CT-06 FAC→EBMS：EBMS 不读取 FAC 内部表即可展示 FinanceResult。
 
+## 2.1 Layered Processing and Retention
+
+- LP-01 Micro Workflow：微系统页面完成本域业务录入、提交、处理、状态跟踪和结果反馈。
+- LP-02 Micro Retention：微系统近期数据保留不少于 7 天。
+- LP-03 Center Retention：中心系统运营数据保留不少于 3 个月。
+- LP-04 EDP Long-term Archive：EDP 长期查询归档业务事实，并返回来源、版本、时间和审计关联。
+- LP-05 Query Routing：近期查询访问微系统，三个月内运营查询访问中心系统，更早或审计查询访问 EDP；7 天和 3 个月边界无数据空洞。
+- LP-06 Cross-system Boundary：微系统、中心系统和 EDP 之间不存在直接数据库读写，交换使用已登记契约。
+
 ## 3. OFA Regression
 
 - RT-01 Simple BOM：与 Legacy Baseline 一致。
@@ -76,6 +85,12 @@ UAT  Business Acceptance
 - E2E-03 逾期→DecisionCase→Action→Payment→Verify。
 - E2E-04 外币逾期→回款汇率差→Verify。
 
+## 8.1 Layered Reliability
+
+- LP-07 Upper-layer Outage：中心系统或 EDP 暂时不可用时，微系统保留已完成业务事实并进入可重试、可追踪状态。
+- LP-08 Duplicate Delivery：重复投递或 Event Replay 不重复生成业务结果。
+- LP-09 Safe Purge：目标层未确认接收或未通过完整性校验时，本地清理被阻断；确认后才允许清理。
+
 ## 9. Evidence
 
 - EV-01 Margin 可穿透 Order→BOM→Price→Rule。
@@ -96,7 +111,7 @@ UAT  Business Acceptance
 
 ## 12. UAT 样本
 
-至少：5 orders、3 customers、2 currencies、1 overdue、1 collection、1 complex BOM、1 calculation change。
+至少：5 orders、3 customers、2 currencies、1 overdue、1 collection、1 complex BOM、1 calculation change、1 完整微系统业务闭环、1 上层不可用后的同步重试、1 重复事件、1 七天边界查询、1 三个月边界查询、1 EDP 历史查询。
 
 ## 13. Go 阈值
 
@@ -107,8 +122,11 @@ UAT  Business Acceptance
 | FX Coverage | 100% |
 | Evidence Coverage | 100% |
 | Decision Traceability | 100% |
+| Layered Processing Cases | 100% |
+| Retention and Query Routing Cases | 100% |
 | Unauthorized Action | 0 |
 | Direct ERP Access | 0 |
+| Data Loss / Duplicate Result / Premature Purge | 0 |
 | P0/P1 Defects | 0 |
 
 ## 14. Test Evidence
