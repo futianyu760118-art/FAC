@@ -44,6 +44,7 @@
 - Event：READY
 - Evidence：READY
 - Audit：READY
+- 分层业务处理与数据保留标准：BASELINE CONFIRMED
 - FAC 专业数据对象：部分未 READY
 - G1 EDP Readiness：**NOT PASSED**
 
@@ -72,7 +73,10 @@ W8 UAT + Go/No-Go
 > 完整强制条款见 `../../architecture/FAC_GUARDRAILS_V1.md`。以下仅为摘要；发生冲突时以 Guardrails 文件为准。
 
 - FAC 不得直接连接 ERP/SPC/CRM/HR/Bank。
-- 所有跨系统数据必须先进入 EDP。
+- 每个微系统页面必须完成本域业务处理；微系统保留不少于 7 天，中心系统保留不少于 3 个月，EDP 长期存储。
+- 所有跨系统数据必须通过标准契约进入 EDP；微系统本地处理不得被误解为跨系统直连。
+- 分层同步必须支持重试、幂等和可追踪；清理本地数据前必须有上层接收和完整性校验确认。
+- 近期查询优先访问微系统，三个月内运营查询优先访问中心系统，更早或审计查询访问 EDP。
 - Missing Price / Missing FX 不允许静默使用 0 或 1。
 - 旧 Result 不允许被 UPDATE 覆盖，必须通过 CalculationRun 产生新版本。
 - Agent 不拥有正式财经事实。
@@ -88,4 +92,5 @@ W8 UAT + Go/No-Go
 - OFA Rule Baseline 已冻结；
 - EDP/FAC Contract Test 通过；
 - ERP Secret 已轮换；
-- FAC Direct ERP Access = 0。
+- FAC Direct ERP Access = 0；
+- 参与 MVP 的微系统业务闭环、分层留存、同步重试和清理安全验收通过。
