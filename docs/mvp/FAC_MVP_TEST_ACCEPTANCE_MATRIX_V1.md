@@ -27,7 +27,7 @@ UAT  Business Acceptance
 - LP-02 Micro Retention：微系统近期数据保留不少于 7 天。
 - LP-03 Center Retention：中心系统运营数据保留不少于 3 个月。
 - LP-04 EDP Long-term Archive：EDP 长期查询归档业务事实，并返回来源、版本、时间和审计关联。
-- LP-05 Query Routing：近期查询访问微系统，三个月内运营查询访问中心系统，更早或审计查询访问 EDP；7 天和 3 个月边界无数据空洞。
+- LP-05 Query Routing：近期查询访问微系统，三个月内运营查询访问中心系统，更早或审计查询访问 EDP；目标层可查询前，源层继续提供查询回退；7 天和 3 个月边界无数据空洞。
 - LP-06 Cross-system Boundary：微系统、中心系统和 EDP 之间不存在直接数据库读写，交换使用已登记契约。
 
 ## 3. OFA Regression
@@ -87,9 +87,10 @@ UAT  Business Acceptance
 
 ## 8.1 Layered Reliability
 
-- LP-07 Upper-layer Outage：中心系统或 EDP 暂时不可用时，微系统保留已完成业务事实并进入可重试、可追踪状态。
+- LP-07 Upper-layer Outage：上层系统不可用后开始本地业务（中心系统或 EDP 已不可用），微系统仍完成业务并返回结果（包括录入、提交、处理和状态跟踪），并持久化待同步状态；恢复后同步成功且不重复生成结果。
 - LP-08 Duplicate Delivery：重复投递或 Event Replay 不重复生成业务结果。
 - LP-09 Safe Purge：目标层未确认接收或未通过完整性校验时，本地清理被阻断；确认后才允许清理。
+- LP-10 Delayed Handoff：同步延迟跨越 7 天或 3 个月边界时，源层继续可查询，直到目标层接收、校验并可查询；全程不得出现查询空洞。
 
 ## 9. Evidence
 
@@ -111,7 +112,7 @@ UAT  Business Acceptance
 
 ## 12. UAT 样本
 
-至少：5 orders、3 customers、2 currencies、1 overdue、1 collection、1 complex BOM、1 calculation change、1 完整微系统业务闭环、1 上层不可用后的同步重试、1 重复事件、1 七天边界查询、1 三个月边界查询、1 EDP 历史查询。
+至少：5 orders、3 customers、2 currencies、1 overdue、1 collection、1 complex BOM、1 calculation change、1 完整微系统业务闭环、1 上层不可用后开始本地业务且微系统仍完成业务并返回结果、1 恢复后的同步重试、1 重复事件、1 七天边界延迟交接查询、1 三个月边界延迟交接查询、1 EDP 历史查询。
 
 ## 13. Go 阈值
 
