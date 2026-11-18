@@ -1,9 +1,8 @@
 """Quote-finance domain contracts and deterministic calculations."""
 
-from __future__ import annotations
-
 from decimal import Decimal
 from enum import StrEnum
+from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -56,7 +55,7 @@ class QuoteFinanceInput(BaseModel):
     recommended_margin_rate: Decimal = Field(default=Decimal("0.28"), ge=0, lt=1)
 
     @model_validator(mode="after")
-    def validate_margin_order(self) -> QuoteFinanceInput:
+    def validate_margin_order(self) -> Self:
         if not (
             self.floor_margin_rate
             <= self.target_margin_rate
