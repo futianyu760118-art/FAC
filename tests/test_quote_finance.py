@@ -15,18 +15,18 @@ def sample_payload() -> QuoteFinanceInput:
         configuration_id="CFG-WL6000-V2",
         specification_id="SPEC-WL6000-V4",
         bom_id="BOM-WL6000-R12",
-        quantity=Decimal("8000"),
+        quantity=Decimal(8000),
         unit_price_original=Decimal("15.90"),
         currency="USD",
         fx_rate_to_cny=Decimal("7.20"),
-        material_cost_cny=Decimal("468000"),
-        labor_cost_cny=Decimal("61000"),
-        processing_cost_cny=Decimal("42000"),
-        packaging_cost_cny=Decimal("28000"),
-        logistics_cost_cny=Decimal("36000"),
-        quality_reserve_cny=Decimal("15000"),
-        aftersales_reserve_cny=Decimal("12000"),
-        fx_reserve_cny=Decimal("9000"),
+        material_cost_cny=Decimal(468000),
+        labor_cost_cny=Decimal(61000),
+        processing_cost_cny=Decimal(42000),
+        packaging_cost_cny=Decimal(28000),
+        logistics_cost_cny=Decimal(36000),
+        quality_reserve_cny=Decimal(15000),
+        aftersales_reserve_cny=Decimal(12000),
+        fx_reserve_cny=Decimal(9000),
         payment_days=87,
     )
 
@@ -42,7 +42,10 @@ def test_quote_finance_is_deterministic():
 
 def test_quote_finance_api_and_m13_registry():
     client = TestClient(create_app())
-    response = client.post("/api/v1/fac/quote-finance/calculate", json=sample_payload().model_dump(mode="json"))
+    response = client.post(
+        "/api/v1/fac/quote-finance/calculate",
+        json=sample_payload().model_dump(mode="json"),
+    )
     assert response.status_code == 200
     assert response.json()["total_cost_cny"] == "671000.00"
 
