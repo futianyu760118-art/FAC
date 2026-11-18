@@ -52,7 +52,7 @@ class FacIntegrationEventRequest(BaseModel):
     evidence_refs: list[IntegrationEvidenceRef] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_ingress_and_evidence(self) -> "FacIntegrationEventRequest":
+    def validate_ingress_and_evidence(self) -> FacIntegrationEventRequest:
         if self.ingress_system != "M02":
             raise ValueError("FAC cross-system events must enter through M02/EDP")
         if self.event_type in {
