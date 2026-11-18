@@ -24,12 +24,18 @@ def build_quote_recalculation_requirement(
         source_system="M09",
         revision=source_event.object_ref.revision,
     )
+    changed_object = {
+        "object_type": source_event.object_ref.object_type,
+        "object_id": source_event.object_ref.object_id,
+        "source_system": source_event.object_ref.source_system,
+        "revision": source_event.object_ref.revision,
+    }
     payload = {
         "status": "OPEN",
         "reason": "M04产品配置、规格书或BOM发生确认/发布变更",
         "trigger_event_id": source_event.event_id,
         "trigger_event_type": source_event.event_type,
-        "changed_object": source_event.object_ref.model_dump(mode="json"),
+        "changed_object": changed_object,
     }
     event_type = "QuoteRecalculationRequired"
     event_id = f"FAC-QUOTE-RECALC:{source_event.event_id}"
