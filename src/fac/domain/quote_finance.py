@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
@@ -55,7 +55,7 @@ class QuoteFinanceInput(BaseModel):
     recommended_margin_rate: Decimal = Field(default=Decimal("0.28"), ge=0, lt=1)
 
     @model_validator(mode="after")
-    def validate_margin_order(self) -> "QuoteFinanceInput":
+    def validate_margin_order(self) -> QuoteFinanceInput:
         if not (
             self.floor_margin_rate
             <= self.target_margin_rate
@@ -96,7 +96,7 @@ def _unit_price_for_margin(
     fx_rate_to_cny: Decimal,
     margin_rate: Decimal,
 ) -> Decimal:
-    denominator = quantity * fx_rate_to_cny * (Decimal("1") - margin_rate)
+    denominator = quantity * fx_rate_to_cny * (Decimal(1) - margin_rate)
     return _money(total_cost_cny / denominator)
 
 
@@ -113,11 +113,11 @@ def calculate_quote_finance(payload: QuoteFinanceInput) -> QuoteFinanceResult:
             payload.aftersales_reserve_cny,
             payload.fx_reserve_cny,
         ),
-        Decimal("0"),
+        Decimal(0),
     )
     revenue = payload.quantity * payload.unit_price_original * payload.fx_rate_to_cny
     gross_profit = revenue - total_cost
-    gross_margin = gross_profit / revenue if revenue else Decimal("0")
+    gross_margin = gross_profit / revenue if revenue else Decimal(0)
 
     if gross_margin < payload.floor_margin_rate:
         risk = RiskLevel.ESCALATE
