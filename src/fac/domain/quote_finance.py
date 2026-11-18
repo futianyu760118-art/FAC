@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 
 MONEY_Q = Decimal("0.01")
 RATE_Q = Decimal("0.0001")
+ROUNDING = "ROUND_HALF_UP"
 
 
 class SourceKind(StrEnum):
@@ -83,11 +84,11 @@ class QuoteFinanceResult(BaseModel):
 
 
 def _money(value: Decimal) -> Decimal:
-    return value.quantize(MONEY_Q, rounding=ROUND_HALF_UP)
+    return value.quantize(MONEY_Q, rounding=ROUNDING)
 
 
 def _rate(value: Decimal) -> Decimal:
-    return value.quantize(RATE_Q, rounding=ROUND_HALF_UP)
+    return value.quantize(RATE_Q, rounding=ROUNDING)
 
 
 def _unit_price_for_margin(
