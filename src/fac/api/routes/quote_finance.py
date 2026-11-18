@@ -22,6 +22,10 @@ class QuoteFinanceRunRequest(BaseModel):
     input: QuoteFinanceInput
 
 
+class QuoteFinanceRecalcRequest(QuoteFinanceRunRequest):
+    base_revision: int = Field(ge=1)
+
+
 class QuoteFinanceRunResponse(BaseModel):
     object_id: str
     revision: int
@@ -30,15 +34,9 @@ class QuoteFinanceRunResponse(BaseModel):
     result: QuoteFinanceResult
 
 
-@router.post("/quote-finance/calculate", response_model=QuoteFinanceResult)
-def calculate_quote(payload: QuoteFinanceInput) -> QuoteFinanceResult:
-    return calculate_quote_finance(payload)
-
-
-@router.post("/quote-finance/calculate-and-record", response_model=QuoteFinanceRunResponse)
-def calculate_and_record_quote(
+def _record_quote(
     payload: QuoteFinanceRunRequest,
-    session: Annotated[Session, Depends(get_session)],
+    session: Session,
 ) -> QuoteFinanceRunResponse:
     result = calculate_quote_finance(payload.input)
     object_id = f"{payload.input.inquiry_id}:{payload.input.quote_version}"
@@ -53,30 +51,18 @@ def calculate_and_record_quote(
         "result": result.model_dump(mode="json"),
         "evidence_ids": payload.evidence_ids,
     }
-
     repo = CoreRepository(session)
-    try:
-        calculation_created = repo.add(
-            CalculationRun,
-            payload.tenant_id,
-            object_id,
-            "M09",
-            payload.revision,
-            run_payload,
-        )
-        snapshot_created = repo.add(
-            CalculationSnapshot,
-            payload.tenant_id,
-            object_id,
-            "M09",
-            payload.revision,
-            snapshot_payload,
-        )
-        session.commit()
-    except RevisionConflict as exc:
-        session.rollback()
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-
+    calculation_created = repo.add(
+        CalculationRun, payload.tenant_id, object_id, "M09", payload.revision, run_payload
+    )
+    snapshot_created = repo.add(
+        CalculationSnapshot,
+        payload.tenant_id,
+        object_id,
+        "M09",
+        payload.revision,
+        snapshot_payload,
+    )
     return QuoteFinanceRunResponse(
         object_id=object_id,
         revision=payload.revision,
@@ -84,6 +70,46 @@ def calculate_and_record_quote(
         snapshot_created=snapshot_created,
         result=result,
     )
+
+
+@router.post("/quote-finance/calculate", response_model=QuoteFinanceResult)
+def calculate_quote(payload: QuoteFinanceInput) -> QuoteFinanceResult:
+    return calculate_quote_finance(payload)
+
+
+@router.post("/quote-finance/calculate-and-record", response_model=QuoteFinanceRunResponse)
+def calculate_and_record_quote(
+    payload: QuoteFinanceRunRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> QuoteFinanceRunResponse:
+    try:
+        response = _record_quote(payload, session)
+        session.commit()
+        return response
+    except RevisionConflict as exc:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/quote-finance/recalculate", response_model=QuoteFinanceRunResponse)
+def recalculate_quote(
+    payload: QuoteFinanceRecalcRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> QuoteFinanceRunResponse:
+    object_id = f"{payload.input.inquiry_id}:{payload.input.quote_version}"
+    repo = CoreRepository(session)
+    base = repo.get(CalculationRun, payload.tenant_id, object_id, "M09", payload.base_revision)
+    if base is None:
+        raise HTTPException(status_code=404, detail="base calculation revision not found")
+    if payload.revision <= payload.base_revision:
+        raise HTTPException(status_code=422, detail="new revision must be greater than base revision")
+    try:
+        response = _record_quote(payload, session)
+        session.commit()
+        return response
+    except RevisionConflict as exc:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.get("/m13/finance-agents", response_model=list[FinanceAgentRegistration])
