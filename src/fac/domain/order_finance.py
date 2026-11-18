@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
@@ -28,10 +28,10 @@ class OrderCostComponents(BaseModel):
     quality: Decimal = Field(ge=0)
     aftersales: Decimal = Field(ge=0)
     fx: Decimal = Field(ge=0)
-    other: Decimal = Field(default=Decimal("0"), ge=0)
+    other: Decimal = Field(default=Decimal(0), ge=0)
 
     def total(self) -> Decimal:
-        return sum(self.model_dump().values(), Decimal("0"))
+        return sum(self.model_dump().values(), Decimal(0))
 
 
 class OrderFinanceSnapshotInput(BaseModel):
@@ -65,7 +65,7 @@ class OrderFinanceCompareInput(BaseModel):
     current: OrderFinanceSnapshotInput
 
     @model_validator(mode="after")
-    def validate_order(self) -> "OrderFinanceCompareInput":
+    def validate_order(self) -> OrderFinanceCompareInput:
         if self.baseline.order_id != self.current.order_id:
             raise ValueError("baseline and current must refer to the same order")
         return self
