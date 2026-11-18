@@ -86,11 +86,17 @@ class CoreRepository:
         source_system: str,
         revision: int,
         payload: dict,
-    ):
+    ) -> bool:
         if model is EventRecord:
             raise ValueError("use add_event for EventRecord")
-        if self.get(model, tenant_id, object_id, source_system, revision) is not None:
-            return False
+        existing = self.get(model, tenant_id, object_id, source_system, revision)
+        if existing is not None:
+            if existing.payload == payload:
+                return False
+            raise RevisionConflict(
+                f"revision conflict for {model.__name__}/{object_id}"
+                f" from {source_system} revision {revision}"
+            )
         self.session.add(
             model(
                 tenant_id=tenant_id,
