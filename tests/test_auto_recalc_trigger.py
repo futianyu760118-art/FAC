@@ -49,7 +49,7 @@ def test_m04_bom_event_automatically_creates_quote_recalculation_requirement():
     assert first.status_code == 200
     assert first.json()["recalculation_required"] is True
     assert first.json()["requirement_created"] is True
-    assert first.json()["requirement_event_id"] == "FAC-QUOTE-RECALC:EVT-BOM-R13"
+    assert first.json()["requirement_event_id"] == "FAC-QUOTE-RECALC:EVT-BOM-R13:INQ-2026-0088"
 
     duplicate = client.post("/api/v1/fac/integration/edp-events", json=body)
     assert duplicate.status_code == 200
