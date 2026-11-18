@@ -157,6 +157,19 @@ class CoreRepository:
             )
         )
 
+    def list_events(
+        self,
+        tenant_id: str,
+        object_id: str | None = None,
+        source_system: str | None = None,
+    ) -> list[EventRecord]:
+        statement = select(EventRecord).where(EventRecord.tenant_id == tenant_id)
+        if object_id is not None:
+            statement = statement.where(EventRecord.object_id == object_id)
+        if source_system is not None:
+            statement = statement.where(EventRecord.source_system == source_system)
+        return list(self.session.scalars(statement.order_by(EventRecord.id.asc())))
+
     def add_event(self, tenant_id: str, envelope: EventEnvelope) -> bool:
         if not isinstance(envelope, EventEnvelope):
             raise TypeError("envelope must be an EventEnvelope")
