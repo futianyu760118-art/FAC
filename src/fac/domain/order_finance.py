@@ -1,9 +1,8 @@
 """Five-stage order finance model and deterministic variance analysis."""
 
-from __future__ import annotations
-
 from decimal import Decimal
 from enum import StrEnum
+from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -66,7 +65,7 @@ class OrderFinanceCompareInput(BaseModel):
     current: OrderFinanceSnapshotInput
 
     @model_validator(mode="after")
-    def validate_order(self) -> OrderFinanceCompareInput:
+    def validate_order(self) -> Self:
         if self.baseline.order_id != self.current.order_id:
             raise ValueError("baseline and current must refer to the same order")
         return self
