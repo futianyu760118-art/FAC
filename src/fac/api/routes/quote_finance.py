@@ -1,6 +1,6 @@
 """Quote finance API endpoints."""
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -32,6 +32,16 @@ class QuoteFinanceRunResponse(BaseModel):
     calculation_created: bool
     snapshot_created: bool
     result: QuoteFinanceResult
+
+
+class RecalculationRequirementView(BaseModel):
+    event_id: str
+    inquiry_id: str
+    revision: int
+    trigger_event_id: str
+    trigger_event_type: str
+    changed_object: dict[str, Any]
+    status: str
 
 
 def _record_quote(
@@ -110,6 +120,39 @@ def recalculate_quote(
     except RevisionConflict as exc:
         session.rollback()
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get(
+    "/quote-finance/recalculation-requirements/{inquiry_id}",
+    response_model=list[RecalculationRequirementView],
+)
+def list_recalculation_requirements(
+    inquiry_id: str,
+    tenant_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[RecalculationRequirementView]:
+    records = CoreRepository(session).list_events(
+        tenant_id=tenant_id,
+        object_id=inquiry_id,
+        source_system="M09",
+    )
+    result = []
+    for record in records:
+        if record.payload.get("event_type") != "QuoteRecalculationRequired":
+            continue
+        requirement = record.payload["payload"]
+        result.append(
+            RecalculationRequirementView(
+                event_id=record.event_id,
+                inquiry_id=inquiry_id,
+                revision=record.revision,
+                trigger_event_id=requirement["trigger_event_id"],
+                trigger_event_type=requirement["trigger_event_type"],
+                changed_object=requirement["changed_object"],
+                status=requirement["status"],
+            )
+        )
+    return result
 
 
 @router.get("/m13/finance-agents", response_model=list[FinanceAgentRegistration])
