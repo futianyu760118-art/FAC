@@ -1,15 +1,14 @@
 """Five-stage order finance model and deterministic variance analysis."""
 
-from __future__ import annotations
-
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from enum import StrEnum
+from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
-
 MONEY_Q = Decimal("0.01")
 RATE_Q = Decimal("0.0001")
+ROUNDING = "ROUND_HALF_UP"
 
 
 class OrderFinanceStage(StrEnum):
@@ -28,10 +27,10 @@ class OrderCostComponents(BaseModel):
     quality: Decimal = Field(ge=0)
     aftersales: Decimal = Field(ge=0)
     fx: Decimal = Field(ge=0)
-    other: Decimal = Field(default=Decimal("0"), ge=0)
+    other: Decimal = Field(default=Decimal(0), ge=0)
 
     def total(self) -> Decimal:
-        return sum(self.model_dump().values(), Decimal("0"))
+        return sum(self.model_dump().values(), Decimal(0))
 
 
 class OrderFinanceSnapshotInput(BaseModel):
@@ -65,7 +64,7 @@ class OrderFinanceCompareInput(BaseModel):
     current: OrderFinanceSnapshotInput
 
     @model_validator(mode="after")
-    def validate_order(self) -> "OrderFinanceCompareInput":
+    def validate_order(self) -> Self:
         if self.baseline.order_id != self.current.order_id:
             raise ValueError("baseline and current must refer to the same order")
         return self
@@ -82,11 +81,11 @@ class OrderFinanceCompareResult(BaseModel):
 
 
 def _money(value: Decimal) -> Decimal:
-    return value.quantize(MONEY_Q, rounding=ROUND_HALF_UP)
+    return value.quantize(MONEY_Q, rounding=ROUNDING)
 
 
 def _rate(value: Decimal) -> Decimal:
-    return value.quantize(RATE_Q, rounding=ROUND_HALF_UP)
+    return value.quantize(RATE_Q, rounding=ROUNDING)
 
 
 def calculate_snapshot(payload: OrderFinanceSnapshotInput) -> OrderFinanceSnapshotResult:

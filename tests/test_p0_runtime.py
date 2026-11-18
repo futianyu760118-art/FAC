@@ -20,13 +20,13 @@ from fac.main import create_app
 def _components(material: str, quality: str = "15000", logistics: str = "36000"):
     return OrderCostComponents(
         material=Decimal(material),
-        labor=Decimal("61000"),
-        processing=Decimal("42000"),
-        packaging=Decimal("28000"),
+        labor=Decimal(61000),
+        processing=Decimal(42000),
+        packaging=Decimal(28000),
         logistics=Decimal(logistics),
         quality=Decimal(quality),
-        aftersales=Decimal("12000"),
-        fx=Decimal("9000"),
+        aftersales=Decimal(12000),
+        fx=Decimal(9000),
     )
 
 
@@ -43,14 +43,14 @@ def test_order_finance_five_stage_variance():
         baseline=OrderFinanceSnapshotInput(
             order_id="HJ-2026-1188",
             stage=OrderFinanceStage.QUOTE,
-            revenue_cny=Decimal("915840"),
+            revenue_cny=Decimal(915840),
             components=_components("468000"),
             revision=1,
         ),
         current=OrderFinanceSnapshotInput(
             order_id="HJ-2026-1188",
             stage=OrderFinanceStage.FORECAST,
-            revenue_cny=Decimal("902000"),
+            revenue_cny=Decimal(902000),
             components=_components("486000", quality="22000", logistics="44000"),
             revision=2,
         ),
