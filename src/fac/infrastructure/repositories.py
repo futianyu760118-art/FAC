@@ -78,6 +78,47 @@ class CoreRepository:
             )
         )
 
+    def list_revisions(
+        self,
+        model: CoreModel,
+        tenant_id: str,
+        object_id: str,
+        source_system: str,
+    ) -> list:
+        if model is EventRecord:
+            raise ValueError("use event query methods for EventRecord")
+        return list(
+            self.session.scalars(
+                select(model)
+                .where(
+                    model.tenant_id == tenant_id,
+                    model.object_id == object_id,
+                    model.source_system == source_system,
+                )
+                .order_by(model.revision.asc())
+            )
+        )
+
+    def latest(
+        self,
+        model: CoreModel,
+        tenant_id: str,
+        object_id: str,
+        source_system: str,
+    ):
+        if model is EventRecord:
+            raise ValueError("use event query methods for EventRecord")
+        return self.session.scalar(
+            select(model)
+            .where(
+                model.tenant_id == tenant_id,
+                model.object_id == object_id,
+                model.source_system == source_system,
+            )
+            .order_by(model.revision.desc())
+            .limit(1)
+        )
+
     def add(
         self,
         model: CoreModel,
