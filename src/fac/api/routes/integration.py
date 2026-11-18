@@ -10,6 +10,7 @@ from fac.contracts.common import EvidenceRef, ObjectRef
 from fac.contracts.events import EventEnvelope
 from fac.contracts.integration_events import FacIntegrationEventRequest
 from fac.domain.events import deterministic_idempotency_key
+from fac.domain.recalculation import build_quote_recalculation_requirement
 from fac.infrastructure.db import get_session
 from fac.infrastructure.repositories import CoreRepository
 
@@ -21,6 +22,9 @@ class EventIngestResponse(BaseModel):
     event_type: str
     created: bool
     idempotency_key: str
+    recalculation_required: bool = False
+    requirement_created: bool = False
+    requirement_event_id: str | None = None
 
 
 @router.post("/edp-events", response_model=EventIngestResponse)
@@ -69,7 +73,12 @@ def ingest_edp_event(
             evidence_refs=evidence_refs,
             idempotency_key=idempotency_key,
         )
-        created = CoreRepository(session).add_event(payload.tenant_id, envelope)
+        repo = CoreRepository(session)
+        created = repo.add_event(payload.tenant_id, envelope)
+        requirement = build_quote_recalculation_requirement(envelope)
+        requirement_created = False
+        if requirement is not None:
+            requirement_created = repo.add_event(payload.tenant_id, requirement)
         session.commit()
     except (TypeError, ValueError) as exc:
         session.rollback()
@@ -82,4 +91,7 @@ def ingest_edp_event(
         event_type=payload.event_type.value,
         created=created,
         idempotency_key=idempotency_key,
+        recalculation_required=requirement is not None,
+        requirement_created=requirement_created,
+        requirement_event_id=requirement.event_id if requirement is not None else None,
     )
