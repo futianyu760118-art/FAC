@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from fac.api.routes.health import router as health_router
 from fac.api.routes.imports import router as import_router
+from fac.api.routes.integration import router as integration_router
 from fac.api.routes.order_finance import router as order_finance_router
 from fac.api.routes.quote_finance import router as quote_finance_router
 from fac.infrastructure.db import get_session
@@ -19,6 +20,7 @@ def create_app(session_factory: sessionmaker[Session] | None = None) -> FastAPI:
     app.include_router(import_router)
     app.include_router(quote_finance_router)
     app.include_router(order_finance_router)
+    app.include_router(integration_router)
     if session_factory is not None:
 
         def test_session():
