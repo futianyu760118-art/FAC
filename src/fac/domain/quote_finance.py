@@ -6,7 +6,6 @@ from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
-
 MONEY_Q = Decimal("0.01")
 RATE_Q = Decimal("0.0001")
 ROUNDING = "ROUND_HALF_UP"
