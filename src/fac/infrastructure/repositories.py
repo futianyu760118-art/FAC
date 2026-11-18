@@ -170,6 +170,28 @@ class CoreRepository:
             statement = statement.where(EventRecord.source_system == source_system)
         return list(self.session.scalars(statement.order_by(EventRecord.id.asc())))
 
+    def find_submitted_inquiries_by_part_no(
+        self,
+        tenant_id: str,
+        part_no: str,
+    ) -> list[str]:
+        """Resolve CRM inquiry numbers whose submitted items reference the PLM part number."""
+        inquiry_ids: set[str] = set()
+        for record in self.list_events(tenant_id, source_system="M05"):
+            event = record.payload
+            if event.get("event_type") != "InquirySubmitted":
+                continue
+            payload = event.get("payload") or {}
+            items = payload.get("items") or []
+            matched = any(
+                str(item.get("internal_model") or "") == part_no
+                for item in items
+                if isinstance(item, dict)
+            )
+            if matched:
+                inquiry_ids.add(str(event.get("correlation_id") or record.object_id))
+        return sorted(inquiry_ids)
+
     def add_event(self, tenant_id: str, envelope: EventEnvelope) -> bool:
         if not isinstance(envelope, EventEnvelope):
             raise TypeError("envelope must be an EventEnvelope")

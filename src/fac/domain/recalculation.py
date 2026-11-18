@@ -13,14 +13,17 @@ QUOTE_RECALC_TRIGGER_TYPES = {
 
 def build_quote_recalculation_requirement(
     source_event: EventEnvelope,
+    target_inquiry_id: str,
 ) -> EventEnvelope | None:
-    """Create an immutable FAC requirement when M04 changes quote-driving product data."""
+    """Create an immutable FAC requirement for an explicitly resolved inquiry."""
     if source_event.event_type not in QUOTE_RECALC_TRIGGER_TYPES:
         return None
+    if not target_inquiry_id.strip():
+        raise ValueError("target_inquiry_id is required")
 
     object_ref = ObjectRef(
         object_type="QuoteRecalculationRequirement",
-        object_id=source_event.correlation_id,
+        object_id=target_inquiry_id,
         source_system="M09",
         revision=source_event.object_ref.revision,
     )
@@ -36,9 +39,10 @@ def build_quote_recalculation_requirement(
         "trigger_event_id": source_event.event_id,
         "trigger_event_type": source_event.event_type,
         "changed_object": changed_object,
+        "target_inquiry_id": target_inquiry_id,
     }
     event_type = "QuoteRecalculationRequired"
-    event_id = f"FAC-QUOTE-RECALC:{source_event.event_id}"
+    event_id = f"FAC-QUOTE-RECALC:{source_event.event_id}:{target_inquiry_id}"
     idempotency_key = deterministic_idempotency_key(
         event_type,
         object_ref,
@@ -54,7 +58,7 @@ def build_quote_recalculation_requirement(
         source_system="M09",
         occurred_at=source_event.occurred_at,
         actor_id="M09",
-        correlation_id=source_event.correlation_id,
+        correlation_id=target_inquiry_id,
         causation_id=source_event.event_id,
         trace_id=source_event.trace_id,
         payload_version=1,

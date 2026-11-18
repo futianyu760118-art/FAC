@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, model_validator
 
 class FacP0EventType(StrEnum):
     INQUIRY_CREATED = "InquiryCreated"
+    INQUIRY_SUBMITTED = "InquirySubmitted"
     PRODUCT_CONFIGURATION_CONFIRMED = "ProductConfigurationConfirmed"
     SPECIFICATION_CONFIRMED = "SpecificationConfirmed"
     BOM_RELEASED = "BOMReleased"
