@@ -80,7 +80,7 @@ def render_fac_page() -> str:
 </head>
 <body>
   <div class="app">
-    <aside class="rail" aria-label="AEOS FAC 导航"><div class="brand"><div class="brand-mark">F</div><div><strong>FAC</strong><small>AEOS M09 · 财经自治中心</small></div></div><div class="module">M09 工作台</div><nav class="nav"><button class="active" data-pane="control" aria-current="page"><span class="nav-icon">⌘</span><span>控制台</span></button><button data-pane="results"><span class="nav-icon">▣</span><span>财经结果</span></button><button data-pane="guards"><span class="nav-icon">◇</span><span>防护 / 决策</span></button><button data-pane="actions"><span class="nav-icon">→</span><span>POMS 动作</span></button><button data-pane="evidence"><span class="nav-icon">▤</span><span>证据</span></button><div class="nav-more" data-nav-more><button class="nav-more-toggle" type="button" data-nav-more-toggle aria-expanded="false"><span class="nav-icon">＋</span><span>更多模块</span></button><div class="nav-secondary" data-nav-secondary><button data-pane="events"><span class="nav-icon">↯</span><span>系统详情</span></button><button data-pane="agents"><span class="nav-icon">◌</span><span>智能体协同</span></button><button data-pane="settings"><span class="nav-icon">⚙</span><span>标准 / 设置 / 接口</span></button></div></div></nav><div class="rail-bottom"><strong>AEOS V7.2.2</strong><span>本地联调沙箱</span></div></aside>
+    <aside class="rail" aria-label="AEOS FAC 导航"><div class="brand"><div class="brand-mark">F</div><div><strong>FAC</strong><small>AEOS M09 · 财经自治中心</small></div></div><div class="module">M09 工作台</div><nav class="nav"><button class="active" data-pane="control" aria-current="page"><span class="nav-icon">⌘</span><span>控制台</span></button><button data-pane="calculation"><span class="nav-icon">▤</span><span>订单核算</span></button><button data-pane="results"><span class="nav-icon">▣</span><span>财经结果</span></button><button data-pane="guards"><span class="nav-icon">◇</span><span>防护 / 决策</span></button><button data-pane="actions"><span class="nav-icon">→</span><span>POMS 动作</span></button><button data-pane="evidence"><span class="nav-icon">▤</span><span>证据</span></button><div class="nav-more" data-nav-more><button class="nav-more-toggle" type="button" data-nav-more-toggle aria-expanded="false"><span class="nav-icon">＋</span><span>更多模块</span></button><div class="nav-secondary" data-nav-secondary><button data-pane="events"><span class="nav-icon">↯</span><span>系统详情</span></button><button data-pane="agents"><span class="nav-icon">◌</span><span>智能体协同</span></button><button data-pane="settings"><span class="nav-icon">⚙</span><span>标准 / 设置 / 接口</span></button></div></div></nav><div class="rail-bottom"><strong>AEOS V7.2.2</strong><span>本地联调沙箱</span></div></aside>
     <section class="main"><header class="topbar"><div class="crumb"><span>AEOS</span><b>/</b><span>M09</span><b>/</b> FAC 财经自治中心</div><div class="top-actions"><span class="environment"><i class="pulse"></i><span id="system-status">系统在线</span></span><span class="tenant">租户：demo-tenant</span><span>本地</span></div></header>
       <main class="page"><div class="toast" id="toast" role="status"></div>
         <section class="pane active" data-pane-panel="control"><div class="page-head"><div><div class="eyebrow">M09 · 联调控制台</div><h1>FAC 财经自治中心</h1><p class="subtitle">业务事实进入 EDP，FAC 负责财经判断，智能体、防护与动作形成可验证闭环。</p></div><div class="head-right"><span class="state"><i class="pulse"></i><span id="run-state">A0 · 观察</span></span><button class="button" id="replay">重放最近事件</button><button class="button primary" id="run">运行联调演示</button></div></div>
@@ -268,8 +268,23 @@ def render_fac_page() -> str:
   .settings-row strong { display:block; font-size:12px; }
   .settings-row small { display:block; margin-top:4px; color:var(--muted); font-size:11px; }
   .settings-note { margin-top:17px; padding:13px 15px; border:1px dashed #31566d; border-radius:8px; color:#9db4c5; font-size:12px; line-height:1.6; }
+  .calculation-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.75fr); gap:17px; margin-top:17px; }
+  .calculation-card { padding:22px; }
+  .calculation-card h2 { margin:0; font-size:20px; }
+  .calculation-meta { margin-top:7px; color:var(--muted); font-size:12px; }
+  .calculation-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; margin-top:20px; }
+  .calculation-metric { padding:15px; border:1px solid #2a526c; border-radius:8px; background:rgba(8,20,33,.38); }
+  .calculation-metric label { display:block; color:#9db4c5; font-size:11px; }
+  .calculation-metric strong { display:block; margin-top:8px; font-size:22px; }
+  .calculation-metric.cost strong { color:#f5ca83; }
+  .calculation-metric.margin strong { color:#64e1b5; }
+  .calculation-actions { display:flex; gap:11px; margin-top:20px; }
+  .calculation-refs { margin-top:17px; }
+  .calculation-refs h2 { font-size:16px; }
+  .calculation-refs .settings-list { margin-top:10px; }
   #integration-details { display:none; }
-  @media (max-width:900px) { .settings-grid { grid-template-columns:1fr; } }
+  @media (max-width:900px) { .settings-grid, .calculation-grid { grid-template-columns:1fr; } }
+  @media (max-width:560px) { .calculation-metrics { grid-template-columns:1fr; } .calculation-actions { flex-direction:column; } }
   @media (max-width:900px) { .front-table-head, .front-order-row { grid-template-columns:1fr 1fr 1fr; } .front-table-head span:nth-child(n+4), .front-order-row > :nth-child(n+4) { display:none; } .front-grid, .front-bottom { grid-template-columns:1fr; } }
   @media (max-width:560px) { .front-shell { padding-top:20px; } .front-head { display:block; } .front-system-link { display:inline-block; margin-top:14px; } .front-metrics { grid-template-columns:1fr; } .front-actions { flex-direction:column; } .front-actions .button { width:100%; } .front-order-row { grid-template-columns:1fr 1fr; } .front-order-row > :nth-child(n+3) { display:none; } }
 </style>
@@ -310,6 +325,37 @@ def render_fac_page() -> str:
           <article class="panel settings-card"><h2>当前运行配置</h2><p>仅展示当前租户的运行边界，不在前台业务流程中打扰操作。</p><div class="settings-list"><div class="settings-row"><div><strong>运行环境</strong><small>正式环境 · production</small></div><span class="badge good">已启用</span></div><div class="settings-row"><div><strong>Demo 模式</strong><small>正式入口不暴露演示接口</small></div><span class="badge good">已关闭</span></div><div class="settings-row"><div><strong>租户范围</strong><small>当前租户 · tenant-a</small></div><span class="badge blue">已隔离</span></div></div></article>
         </div><div class="settings-note">配置变更应通过正式审批和版本发布流程完成；当前页面先提供标准、设置和接口状态的集中查看入口。</div>
       </section>`);
+    };
+    const mountCalculationPane = () => {
+      const page = document.querySelector("main.page");
+      if (!page || document.querySelector('[data-pane-panel="calculation"]')) return;
+      page.insertAdjacentHTML("beforeend", `<section class="pane" data-pane-panel="calculation">
+        <div class="page-head"><div><div class="eyebrow">M09 · OFA 订单核算</div><h1>订单核算</h1><p class="subtitle">保留原订单核算模块：基于 EDP 冻结输入执行 OFA 计划成本核算，并保留版本化结果。</p></div><div class="head-right"><span class="badge blue">正式核算模块</span></div></div>
+        <div class="calculation-grid"><article class="panel calculation-card"><div class="front-analysis-head"><div><h2 id="calculation-title">当前订单核算</h2><div class="calculation-meta" id="calculation-meta">等待选择正式订单</div></div><span class="front-state" id="calculation-status">待计算</span></div><div class="calculation-metrics"><div class="calculation-metric"><label>销售金额</label><strong id="calculation-sales">待选择</strong></div><div class="calculation-metric cost"><label>计划成本</label><strong id="calculation-cost">待计算</strong></div><div class="calculation-metric margin"><label>预计毛利</label><strong id="calculation-margin">待计算</strong></div></div><div class="calculation-actions"><button class="button primary" id="calculation-run">重新核算订单</button><button class="button" id="calculation-result-link">查看财经结果</button></div><p class="front-hint" id="calculation-hint">核算会读取订单、BOM、价格、人工、费用和汇率等冻结输入，生成新的结果版本。</p></article><aside class="panel calculation-card"><h2>核算版本</h2><div class="settings-list"><div class="settings-row"><div><strong>结果版本</strong><small id="calculation-version">待生成</small></div><span class="badge warn" id="calculation-version-status">待计算</span></div><div class="settings-row"><div><strong>核算规则</strong><small id="calculation-rule">OFA_PLAN_COST · v1</small></div><span class="badge blue">已登记</span></div><div class="settings-row"><div><strong>财经期间</strong><small id="calculation-period">等待期间配置</small></div><span class="badge warn" id="calculation-period-status">待配置</span></div></div></aside></div>
+        <article class="panel calculation-card calculation-refs"><h2>核算输入引用</h2><div class="settings-list" id="calculation-refs"><div class="front-empty">生成核算结果后展示冻结输入引用。</div></div></article>
+      </section>`);
+      document.querySelector("#calculation-result-link")?.addEventListener("click", () => document.querySelector("[data-pane=results]")?.click());
+    };
+    const renderCalculationPane = () => {
+      const selected = formalState.orders.find((item) => item.order_id === formalState.selectedOrderId) || formalState.orders[0];
+      const result = formalState.result && formalState.result.result_id?.includes(selected?.order_id || "") ? formalState.result : null;
+      const sales = frontSales(selected);
+      const cost = result?.total_cost;
+      const margin = sales && cost ? sales.amount - Number(cost.functional_amount) : null;
+      const setText = (selector, value) => { const node = document.querySelector(selector); if (node) node.textContent = value; };
+      setText("#calculation-title", selected ? `订单核算：${selected.order_id}` : "当前订单核算");
+      setText("#calculation-meta", selected ? `客户 ${selected.payload?.customer_id || "待接入"} · 产品 ${selected.payload?.product_id || "待接入"} · 来源 ${selected.source_system}` : "等待选择正式订单");
+      setText("#calculation-sales", sales ? frontMoney(sales.amount, sales.currency) : "待选择");
+      setText("#calculation-cost", cost ? frontMoney(cost.functional_amount, cost.functional_currency) : "待计算");
+      setText("#calculation-margin", margin === null ? "待计算" : frontMoney(margin, sales.currency));
+      setText("#calculation-status", result ? statusText(result.status) : selected ? "待计算" : "待接入");
+      setText("#calculation-version", result ? `V${result.version} · ${result.result_id}` : "待生成");
+      setText("#calculation-version-status", result ? "已生成" : "待计算");
+      setText("#calculation-rule", `${formalState.rules[0]?.rule_id || "OFA_PLAN_COST"} · ${formalState.rules[0]?.version || "v1"}`);
+      setText("#calculation-period", formalState.periods[0] ? `${formalState.periods[0].period_id} · ${formalState.periods[0].functional_currency}` : "等待期间配置");
+      setText("#calculation-period-status", formalState.periods[0] ? statusText(formalState.periods[0].status) : "待配置");
+      const refs = document.querySelector("#calculation-refs");
+      if (refs) refs.innerHTML = result?.evidence_refs?.length ? result.evidence_refs.map((ref) => `<div class="settings-row"><div><strong>${escapeHtml(ref)}</strong><small>冻结输入引用 · 用于本次 OFA 核算</small></div><span class="badge good">已引用</span></div>`).join("") : `<div class="front-empty">${selected ? "当前结果暂无输入引用，执行核算后展示。" : "当前暂无正式订单。"}</div>`;
     };
     const mountFrontOffice = () => {
       const pane = document.querySelector('[data-pane-panel="control"]');
@@ -369,6 +415,7 @@ def render_fac_page() -> str:
       const external = document.querySelector("#front-external-list");
       document.querySelector("#front-external-count").textContent = `${formalState.externalRequests.length} 项`;
       external.innerHTML = formalState.externalRequests.length ? formalState.externalRequests.slice(0,3).map((item) => `<div class="front-external-row"><span>${escapeHtml(item.request_type)}<small>${escapeHtml(item.target_system)}</small></span><small>${escapeHtml(item.status)}</small></div>`).join("") : `<div class="front-empty">暂无外部处理请求</div>`;
+      renderCalculationPane();
     };
     const setFormalWaiting = (message = "待接入 EDP 业务对象") => {
       const state = document.querySelector("#run-state");
@@ -459,13 +506,14 @@ def render_fac_page() -> str:
         toast(`正式数据加载失败：${error.message}`);
       }
     };
-    const calculateFormalOrder = async () => {
+    const calculateFormalOrder = async (event) => {
+      const trigger = event?.currentTarget;
       const order = formalState.orders.find((item) => item.order_id === formalState.selectedOrderId) || formalState.orders[0];
       if (!order) { setFormalWaiting("暂无 EDP 订单，当前状态：待接入"); toast("暂无可计算订单：请先接入 M02 EDP"); return; }
       const refs = order.input_refs || [{object_type:"Order", object_id:order.order_id, source_system:order.source_system, revision:order.revision}];
       const body = {tenant_id:order.tenant_id, order_id:order.order_id, period_id:formalState.periods[0]?.period_id || "未配置期间", rule_id:formalState.rules[0]?.rule_id || "OFA_PLAN_COST", rule_version:formalState.rules[0]?.version || "v1", input_refs:refs, actor:"fac-user", idempotency_key:`fac-ui-${order.order_id}-${Date.now()}`, reason:"正式工作台订单财经计算"};
       try {
-        const button = document.querySelector("#run"); if (button) { button.disabled = true; button.textContent = "计算中…"; }
+        const buttons = [document.querySelector("#run"), document.querySelector("#calculation-run"), trigger].filter((button, index, all) => button && all.indexOf(button) === index); buttons.forEach((button) => { button.disabled = true; button.textContent = "计算中…"; });
         const result = await formalApi(`/api/v1/fac/orders/${encodeURIComponent(order.order_id)}/calculations`, {method:"POST", body:JSON.stringify(body)});
         formalState.result = result.result;
         formalState.evidence = await formalApi(`/api/v1/fac/results/${encodeURIComponent(result.result.result_id)}/evidence`);
@@ -484,7 +532,7 @@ def render_fac_page() -> str:
           const ledgerStatus = document.querySelector("#ledger-status"); if (ledgerStatus) { ledgerStatus.textContent = "已生成"; ledgerStatus.className = "badge warn"; }
         }, 0);
       } catch (error) { toast(`订单计算失败：${error.message}`); }
-      finally { const button = document.querySelector("#run"); if (button) { button.disabled = false; button.textContent = "计算订单"; } }
+      finally { const buttons = [document.querySelector("#run"), document.querySelector("#calculation-run"), trigger].filter((button, index, all) => button && all.indexOf(button) === index); buttons.forEach((button) => { button.disabled = false; button.textContent = button.id === "calculation-run" ? "重新核算订单" : "计算订单"; }); }
     };
     const showFormalEvidence = async () => {
       const result = document.querySelector("#result-id")?.textContent?.trim();
@@ -492,6 +540,7 @@ def render_fac_page() -> str:
       try { const evidence = await formalApi(`/api/v1/fac/results/${encodeURIComponent(result)}/evidence`); toast(`证据状态：${evidence.status} · 覆盖率 ${evidence.evidence_coverage}%`); } catch (error) { toast(`证据查询失败：${error.message}`); }
     };
     replaceHandler("#run", calculateFormalOrder);
+    replaceHandler("#calculation-run", calculateFormalOrder);
     replaceHandler("#run-events", loadFormalState);
     replaceHandler("#run-results", calculateFormalOrder);
     replaceHandler("#replay", loadFormalState);
@@ -511,7 +560,7 @@ def render_fac_page() -> str:
       current.replaceWith(button);
       button.addEventListener("click", loadFormalState);
     });
-    const frontNavCopy = {control:"订单分析", events:"系统详情", results:"财经结果", agents:"智能体协同", guards:"复核管理", actions:"待外部处理", evidence:"证据管理", settings:"标准 / 设置 / 接口"};
+    const frontNavCopy = {control:"订单分析", calculation:"订单核算", events:"系统详情", results:"财经结果", agents:"智能体协同", guards:"复核管理", actions:"待外部处理", evidence:"证据管理", settings:"标准 / 设置 / 接口"};
     document.querySelectorAll(".nav button[data-pane]").forEach((button) => {
       const label = button.querySelector("span:last-child");
       if (label && frontNavCopy[button.dataset.pane]) label.textContent = frontNavCopy[button.dataset.pane];
@@ -519,6 +568,7 @@ def render_fac_page() -> str:
     const brandSubline = document.querySelector(".brand small");
     if (brandSubline) brandSubline.textContent = "M09 · 财经自治中心";
     mountSettingsPane();
+    mountCalculationPane();
     mountFrontOffice();
     renderFrontOffice();
     loadFormalState();

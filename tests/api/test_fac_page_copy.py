@@ -12,6 +12,8 @@ def test_formal_fac_page_uses_product_copy_and_formal_api_hooks(monkeypatch):
     for text in (
         "M09 · 财经工作台",
         "订单财经分析",
+        "订单核算",
+        "重新核算订单",
         "规则与期间",
         "结果与证据",
         "待外部处理",
