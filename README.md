@@ -1,7 +1,8 @@
 # FAC
 
-FAC is being built in phases. This repository currently contains the initial
-service bootstrap and health endpoint; the full Phase 1 MVP is not yet implemented.
+FAC is being built in phases. This repository contains the service bootstrap,
+EDP fixture boundary, OFA calculation core, and a local finance calculation Demo;
+the full Phase 1 MVP is not yet implemented.
 
 ## Local setup
 
@@ -34,3 +35,22 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 
 It returns `{"status":"ok","service":"fac"}`. Run the tests with
 `python -m pytest -q`.
+
+## Run the local finance Demo
+
+The Demo uses a separate `fac_demo.db`, seeds a fixed `demo-tenant` order, and
+shows real OFA calculation versions, snapshots, results, and replay behavior.
+It does not connect to production EDP, M02, M04, M13, or ERP systems.
+
+```powershell
+.\scripts\run_fac_demo.ps1
+```
+
+Open `http://127.0.0.1:8000/demo/fac`, then run the workflow in order:
+
+1. 初始化 Demo 数据
+2. 运行初次计算 — V1 total `46.00 CNY`
+3. 价格修正并重算 — V2 total `52.00 CNY`
+4. 重放最近事件 — no duplicate result
+
+The Demo is disabled by default through `FAC_DEMO_ENABLED=false`.
