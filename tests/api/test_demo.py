@@ -47,12 +47,32 @@ def test_demo_api_runs_calculation_recalculation_and_replay(tmp_path, monkeypatc
     Base.metadata.create_all(engine)
     client = TestClient(create_app(make_session_factory(engine)))
 
+    empty_state = client.get("/api/v1/demo/state")
+    assert empty_state.status_code == 404
+    blocked_reset = client.post(
+        "/api/v1/demo/reset", headers={"Origin": "https://attacker.example"}
+    )
+    assert blocked_reset.status_code == 403
+
     reset = client.post("/api/v1/demo/reset")
     assert reset.status_code == 200
     assert len(reset.json()["seeded_refs"]) == 6
     seeded_state = client.get("/api/v1/demo/state")
     assert seeded_state.status_code == 200
     assert len(seeded_state.json()["input_refs"]) == 6
+    unknown_replay = client.post(
+        "/api/v1/demo/replay",
+        json={
+            "order_id": "ORD-1001",
+            "price_revision": 2,
+            "event_id": "unknown-event",
+            "idempotency_key": "unknown-key",
+            "trigger_type": "QuoteRecalculationRequired",
+            "reason": "Unknown replay",
+            "actor": "demo-user",
+        },
+    )
+    assert unknown_replay.status_code == 404
 
     body = {
         "order_id": "ORD-1001",
@@ -81,6 +101,21 @@ def test_demo_api_runs_calculation_recalculation_and_replay(tmp_path, monkeypatc
     assert replay.json()["replayed"] is True
     assert replay.json()["result"]["result_id"] == second.json()["result"]["result_id"]
 
+    third_body = {
+        **second_body,
+        "event_id": "demo-event-v2-followup",
+        "idempotency_key": "demo-key-v2-followup",
+        "actor": "demo-auditor",
+    }
+    third = client.post("/api/v1/demo/events/quote-recalculation", json=third_body)
+    assert third.status_code == 200
+    assert third.json()["replayed"] is False
+    state_after_third = client.get("/api/v1/demo/state")
+    assert len(state_after_third.json()["events"]) == 3
+    third_replay = client.post("/api/v1/demo/replay", json=third_body)
+    assert third_replay.status_code == 200
+    assert third_replay.json()["replayed"] is True
+
     state = client.get("/api/v1/demo/state")
     assert state.status_code == 200
     assert len(state.json()["calculations"]) == 2
@@ -105,3 +140,8 @@ def test_demo_page_contains_the_finance_workbench_workflow(monkeypatch):
         "checksum",
     ):
         assert text in response.text
+    assert "textContent" in response.text
+    assert "innerHTML" not in response.text
+    assert '$("recalculate").disabled' in response.text
+    assert '$("replay").disabled' in response.text
+    assert "void refresh();" in response.text

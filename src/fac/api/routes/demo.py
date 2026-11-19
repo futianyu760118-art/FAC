@@ -1,8 +1,9 @@
 """Feature-gated local FAC demo routes."""
 
 from typing import Annotated
+from urllib.parse import urlsplit
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
@@ -25,7 +26,13 @@ def demo_page() -> str:
 
 
 @router.post("/api/v1/demo/reset", response_model=DemoResetResponse)
-def reset_demo(session: Annotated[Session, Depends(get_session)]) -> DemoResetResponse:
+def reset_demo(
+    request: Request, session: Annotated[Session, Depends(get_session)]
+) -> DemoResetResponse:
+    origin = request.headers.get("origin")
+    host = request.headers.get("host")
+    if origin and urlsplit(origin).netloc != host:
+        raise HTTPException(status_code=403, detail="cross-origin Demo reset is not allowed")
     return DemoService(session).reset()
 
 
@@ -56,6 +63,8 @@ def replay_demo_event(
     session: Annotated[Session, Depends(get_session)],
 ) -> DemoTriggerResponse:
     try:
-        return DemoService(session).trigger(request)
+        return DemoService(session).replay(request)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

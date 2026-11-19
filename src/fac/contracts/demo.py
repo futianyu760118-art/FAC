@@ -35,4 +35,4 @@ class DemoStateResponse(BaseModel):
     input_refs: tuple[ObjectRef, ...]
     events: tuple[dict[str, Any], ...]
     calculations: tuple[CalculationResponse, ...]
-    results: tuple[PlanCostResponse, ...]
+    results: tuple[PlanCostResponse | None, ...]

@@ -93,12 +93,21 @@ class DemoService:
         result = OFAEngine(self.session).calculate_plan_cost(
             ports.get_order(refs[0], context), ports, context
         )
+        self.session.commit()
         return DemoTriggerResponse(
             replayed=not inserted,
             event_id=request.event_id,
             calculation=CalculationResponse.from_context(context),
             result=PlanCostResponse.from_result(result),
         )
+
+    def replay(self, request: DemoTriggerRequest) -> DemoTriggerResponse:
+        event = CoreRepository(self.session).get_event_by_id(DEMO_TENANT_ID, request.event_id)
+        if event is None:
+            raise LookupError(f"Demo event not found: {request.event_id}")
+        if event.idempotency_key != request.idempotency_key:
+            raise ValueError("Demo replay identity does not match the stored event")
+        return self.trigger(request)
 
     def state(self) -> DemoStateResponse:
         calculation_service = CalculationService(self.session, DEMO_TENANT_ID)
@@ -116,7 +125,11 @@ class DemoService:
         )
         contexts = tuple(context for context in contexts if context is not None)
         results = tuple(
-            PlanCostResponse.from_result(OFAEngine(self.session).get_result(context))
+            (
+                PlanCostResponse.from_result(result)
+                if (result := OFAEngine(self.session).get_result(context)) is not None
+                else None
+            )
             for context in contexts
         )
         events = tuple(
@@ -127,9 +140,18 @@ class DemoService:
                 .order_by(EventRecord.id)
             ).all()
         )
-        latest_refs = (
-            contexts[-1].input_refs if contexts else tuple(self._seeded_refs())
+        persisted_refs = tuple(
+            ObjectRef(row.object_type, row.object_id, row.source_system, row.revision)
+            for row in self.session.scalars(
+                select(EdpProjection)
+                .where(
+                    EdpProjection.tenant_id == DEMO_TENANT_ID,
+                    EdpProjection.source_system == DEMO_SOURCE_SYSTEM,
+                )
+                .order_by(EdpProjection.id)
+            ).all()
         )
+        latest_refs = contexts[-1].input_refs if contexts else persisted_refs
         return DemoStateResponse(
             tenant_id=DEMO_TENANT_ID,
             input_refs=latest_refs,
@@ -210,6 +232,7 @@ class DemoService:
             "event_id": event.event_id,
             "event_type": payload.get("event_type"),
             "idempotency_key": event.idempotency_key,
+            "actor_id": payload.get("actor_id"),
             "object_ref": {
                 "object_type": object_ref.get("object_type", "Order"),
                 "object_id": event.object_id,

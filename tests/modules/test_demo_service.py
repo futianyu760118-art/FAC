@@ -13,6 +13,7 @@ from fac.infrastructure.models import (
     EventRecord,
 )
 from fac.infrastructure.repositories import EdpRepository
+from fac.modules.calculation.service import CalculationService
 
 
 def _demo_service(session):
@@ -87,3 +88,23 @@ def test_demo_calculation_recalculation_and_replay_are_versioned_and_idempotent(
         assert len(state.results) == 2
         assert state.results[0].total_cost.functional_amount == Decimal("46.00")
         assert state.events[0]["object_ref"]["object_type"] == "Order"
+
+
+def test_demo_state_tolerates_a_run_without_a_persisted_result(tmp_path):
+    with _session(tmp_path) as session:
+        service = _demo_service(session)
+        service.reset()
+        CalculationService(session, "demo-tenant").start(
+            "Order",
+            "ORD-1001",
+            service._refs_for_price(1),
+            "v1",
+            "QuoteRecalculationRequired",
+            "Interrupted before result persistence",
+            "demo-user",
+        )
+
+        state = service.state()
+
+        assert len(state.calculations) == 1
+        assert state.results == (None,)
