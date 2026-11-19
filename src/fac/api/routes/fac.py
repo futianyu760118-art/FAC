@@ -365,6 +365,34 @@ def calculate_order(
     return {"status": "CALCULATED", "result": result}
 
 
+@router.get("/api/v1/fac/orders/{order_id}/financial-result")
+def get_order_financial_result(
+    order_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> dict[str, object]:
+    tenant = _tenant(tenant_id)
+    row = session.scalar(
+        select(CalculationResult)
+        .where(
+            CalculationResult.tenant_id == tenant,
+            CalculationResult.object_id.like(f"Order:{order_id}:plan:v%"),
+            CalculationResult.source_system == "fac",
+        )
+        .order_by(CalculationResult.revision.desc())
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="finance result not found")
+    return {
+        "result_id": row.object_id,
+        "version": row.revision,
+        "status": row.payload.get("status"),
+        "total_cost": row.payload.get("total_cost"),
+        "evidence_refs": tuple(row.payload.get("evidence_refs", ())),
+        "previous_result_id": row.payload.get("previous_result_id"),
+    }
+
+
 @router.get("/api/v1/fac/calculations/{calculation_id}")
 def get_calculation(
     calculation_id: str,

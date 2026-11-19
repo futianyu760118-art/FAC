@@ -184,9 +184,79 @@ def render_fac_page() -> str:
         "打开 OFA 明细": "查看结果明细",
         "创建示例动作": "查看待外部处理",
         "POMS 动作已创建，等待执行反馈": "暂无外部处理请求，当前状态：待外部处理",
+        "refreshIntegration();": "",
     }
     for old, new in replacements.items():
         html = html.replace(old, new)
+    front_css = r'''
+<style>
+  .front-shell { padding: 32px 0 56px; }
+  .front-head { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:22px; }
+  .front-head h1 { margin:4px 0 7px; font-size:34px; letter-spacing:-.03em; }
+  .front-head p { margin:0; color:var(--muted); font-size:14px; }
+  .front-kicker { color:#67c7ff; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+  .front-system-link { color:#67c7ff; cursor:pointer; font-size:13px; padding-top:11px; white-space:nowrap; }
+  .front-panel { background:linear-gradient(145deg,#102b43,#0d1e31); border:1px solid #24465e; border-radius:10px; box-shadow:0 14px 40px rgba(0,0,0,.18); }
+  .front-orders { padding:18px 20px 12px; }
+  .front-toolbar { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:13px; }
+  .front-toolbar h2, .front-analysis h2, .front-review-panel h2, .front-bottom h2 { margin:0; font-size:18px; }
+  .front-count { color:var(--muted); font-size:12px; }
+  .front-table { display:grid; gap:2px; }
+  .front-table-head, .front-order-row { display:grid; grid-template-columns:1.1fr 1.35fr 1fr 1fr 1fr .8fr .8fr; align-items:center; gap:12px; }
+  .front-table-head { padding:0 12px 8px; color:#7f9bb2; font-size:11px; }
+  .front-order-row { min-height:54px; padding:9px 12px; color:#dbeaf5; border-top:1px solid rgba(103,160,196,.13); cursor:pointer; transition:background .18s, border .18s; }
+  .front-order-row:hover, .front-order-row.selected { background:rgba(66,163,226,.12); border-color:#2f8dc5; }
+  .front-order-row strong { font-size:13px; }
+  .front-order-row small { display:block; color:var(--muted); margin-top:3px; font-size:11px; }
+  .front-number { text-align:right; font-variant-numeric:tabular-nums; }
+  .front-status { justify-self:start; padding:4px 8px; border-radius:999px; background:rgba(91,185,255,.13); color:#7fd0ff; font-size:11px; }
+  .front-status.warn { background:rgba(242,185,109,.13); color:#f2c078; }
+  .front-status.good { background:rgba(105,223,182,.13); color:#75e4bd; }
+  .front-grid { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(280px,.75fr); gap:17px; margin-top:17px; }
+  .front-analysis, .front-review-panel { padding:22px; }
+  .front-analysis-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+  .front-analysis h2 { font-size:22px; }
+  .front-meta { color:var(--muted); font-size:12px; margin-top:7px; }
+  .front-state { color:#7fd0ff; font-size:12px; white-space:nowrap; }
+  .front-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; margin-top:20px; }
+  .front-metric { padding:15px; border:1px solid #2a526c; border-radius:8px; background:rgba(8,20,33,.38); }
+  .front-metric label { display:block; color:#9db4c5; font-size:11px; }
+  .front-metric strong { display:block; margin-top:8px; font-size:24px; letter-spacing:-.03em; }
+  .front-metric em { display:block; margin-top:5px; color:#79dfbd; font-size:11px; font-style:normal; }
+  .front-metric.cost strong { color:#f5ca83; }
+  .front-metric.margin { border-color:#2b7666; background:rgba(24,89,73,.16); }
+  .front-metric.margin strong { color:#64e1b5; }
+  .front-actions { display:flex; gap:11px; margin-top:20px; }
+  .front-actions .button { min-width:180px; }
+  .front-hint { margin:14px 0 0; color:#8ea8bb; font-size:12px; }
+  .front-review-panel { min-height:265px; }
+  .front-review-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .front-timeline { margin-top:22px; border-left:1px solid #2e566d; padding-left:18px; display:grid; gap:17px; }
+  .front-step { position:relative; }
+  .front-step:before { content:""; position:absolute; left:-24px; top:2px; width:9px; height:9px; border-radius:50%; background:#29475b; border:2px solid #0d1e31; }
+  .front-step.active:before { background:#54b8f5; box-shadow:0 0 0 4px rgba(84,184,245,.13); }
+  .front-step.done:before { background:#68dfb6; }
+  .front-step strong { display:block; font-size:13px; }
+  .front-step small { display:block; margin-top:4px; color:var(--muted); font-size:11px; line-height:1.5; }
+  .front-bottom { display:grid; grid-template-columns:1.1fr .9fr; gap:17px; margin-top:17px; }
+  .front-bottom > article { padding:20px; }
+  .front-bottom-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .front-coverage { display:flex; align-items:center; gap:15px; margin-top:18px; }
+  .front-coverage strong { color:#f2c078; font-size:28px; }
+  .front-progress { flex:1; height:8px; overflow:hidden; border-radius:99px; background:#2c465a; }
+  .front-progress i { display:block; height:100%; width:0; border-radius:99px; background:#f2b96d; transition:width .25s; }
+  .front-coverage small { color:var(--muted); white-space:nowrap; }
+  .front-evidence-list, .front-external-list { display:grid; gap:8px; margin-top:16px; }
+  .front-evidence-row, .front-external-row { display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-top:1px solid rgba(103,160,196,.13); font-size:12px; }
+  .front-evidence-row span, .front-external-row span { color:#c9dce8; }
+  .front-evidence-row small, .front-external-row small { color:#f2c078; text-align:right; }
+  .front-empty { padding:24px 12px; color:var(--muted); text-align:center; }
+  #integration-details { display:none; }
+  @media (max-width:900px) { .front-table-head, .front-order-row { grid-template-columns:1fr 1fr 1fr; } .front-table-head span:nth-child(n+4), .front-order-row > :nth-child(n+4) { display:none; } .front-grid, .front-bottom { grid-template-columns:1fr; } }
+  @media (max-width:560px) { .front-shell { padding-top:20px; } .front-head { display:block; } .front-system-link { display:inline-block; margin-top:14px; } .front-metrics { grid-template-columns:1fr; } .front-actions { flex-direction:column; } .front-actions .button { width:100%; } .front-order-row { grid-template-columns:1fr 1fr; } .front-order-row > :nth-child(n+3) { display:none; } }
+</style>
+'''
+    html = html.replace("</head>", front_css + "</head>")
     formal_script = r'''
   <script>
     const formalApi = async (path, options = {}) => {
@@ -203,6 +273,72 @@ def render_fac_page() -> str:
       button.addEventListener("click", handler);
     };
     const formalState = {orders:[], rules:[], periods:[], events:[], externalRequests:[], result:null, evidence:null};
+    const frontMoney = (value, currency = "CNY") => value === null || value === undefined || value === "" ? "待计算" : `${Number(value).toLocaleString("zh-CN", {minimumFractionDigits:2, maximumFractionDigits:2})} ${currency}`;
+    const frontSales = (order) => {
+      const payload = order?.payload || {};
+      const quantity = Number(payload.quantity || 0);
+      const unit = Number(payload.unit_price?.amount || 0);
+      return quantity && unit ? {amount: quantity * unit, currency: payload.unit_price.currency || "CNY"} : null;
+    };
+    const mountFrontOffice = () => {
+      const pane = document.querySelector('[data-pane-panel="control"]');
+      if (!pane) return;
+      pane.innerHTML = `<div class="front-shell">
+        <header class="front-head"><div><div class="front-kicker">M09 · 财经工作台</div><h1>订单财经分析</h1><p>完成订单的收入、成本、毛利测算与复核提报，证据与外部处理状态一并跟踪。</p></div><a class="front-system-link" id="front-system-link">系统详情 →</a></header>
+        <section class="front-panel front-orders"><div class="front-toolbar"><h2>选择订单</h2><span class="front-count" id="front-order-count">待接入订单</span></div><div class="front-table"><div class="front-table-head"><span>订单编号</span><span>客户 / 产品</span><span>销售金额</span><span>计划成本</span><span>预计毛利</span><span>复核状态</span><span>证据覆盖</span></div><div id="front-order-list" class="front-table"><div class="front-empty">正在加载正式订单…</div></div></div></section>
+        <section class="front-grid"><article class="front-panel front-analysis"><div class="front-analysis-head"><div><h2 id="front-analysis-title">选择订单后开始分析</h2><div id="front-analysis-meta" class="front-meta">订单、BOM、价格和汇率由 M02 EDP 提供</div></div><span class="front-state" id="front-analysis-state">待接入</span></div><div class="front-metrics"><div class="front-metric"><label>销售金额</label><strong id="front-sales">待选择</strong><em>订单收入</em></div><div class="front-metric cost"><label>计划成本</label><strong id="front-cost">待计算</strong><em id="front-cost-status">需先计算订单</em></div><div class="front-metric margin"><label>预计毛利</label><strong id="front-margin">待计算</strong><em id="front-margin-status">生成结果后展示</em></div></div><div class="front-actions"><button class="button primary" id="run">计算订单</button><button class="button" id="front-review">提交复核</button></div><p class="front-hint" id="front-hint">提示：请先计算订单生成最新财经结果，确认输入证据后再提交复核。</p></article><aside class="front-panel front-review-panel"><div class="front-review-head"><h2>复核状态</h2><span class="badge warn" id="front-review-badge">待计算</span></div><div class="front-timeline"><div class="front-step active" id="front-step-calculate"><strong>财经测算</strong><small>计算订单的收入、计划成本与预计毛利</small></div><div class="front-step" id="front-step-submit"><strong>提交复核</strong><small>提交财经结果与证据，等待复核</small></div><div class="front-step" id="front-step-review"><strong>复核中</strong><small>复核人员核对财经结果与证据</small></div><div class="front-step" id="front-step-done"><strong>复核完成</strong><small>确认结果并归档</small></div></div></aside></section>
+        <section class="front-bottom"><article class="front-panel"><div class="front-bottom-head"><h2>证据覆盖率</h2><span class="badge warn" id="front-evidence-badge">待验证</span></div><div class="front-coverage"><strong id="front-evidence-coverage">0%</strong><div class="front-progress"><i id="front-evidence-progress"></i></div><small id="front-evidence-count">待生成结果</small></div><div class="front-evidence-list" id="front-evidence-list"><div class="front-empty">生成财经结果后展示证据状态</div></div></article><article class="front-panel"><div class="front-bottom-head"><h2>待外部处理</h2><span class="badge warn" id="front-external-count">0 项</span></div><div class="front-external-list" id="front-external-list"><div class="front-empty">暂无外部处理请求</div></div></article></section>
+      </div>`;
+      document.querySelector("#front-system-link")?.addEventListener("click", (event) => {
+        const details = document.querySelector("#integration-details");
+        if (!details) return;
+        const open = details.style.display !== "block";
+        details.style.display = open ? "block" : "none";
+        event.currentTarget.textContent = open ? "收起系统详情 ↑" : "系统详情 →";
+        if (open) details.scrollIntoView({behavior:"smooth", block:"start"});
+      });
+      document.querySelector("#front-review")?.addEventListener("click", () => toast(formalState.result ? "复核接口已预留，当前状态：待外部处理" : "请先计算订单生成财经结果"));
+    };
+    const renderFrontOffice = () => {
+      const list = document.querySelector("#front-order-list");
+      if (!list) return;
+      const selected = formalState.orders.find((item) => item.order_id === formalState.selectedOrderId) || formalState.orders[0];
+      formalState.selectedOrderId = selected?.order_id || null;
+      const resultForSelected = formalState.result && formalState.result.result_id?.includes(selected?.order_id || "") ? formalState.result : null;
+      document.querySelector("#front-order-count").textContent = formalState.orders.length ? `${formalState.orders.length} 个正式订单` : "待接入订单";
+      list.innerHTML = formalState.orders.length ? formalState.orders.map((order) => {
+        const sales = frontSales(order);
+        const isSelected = order.order_id === selected?.order_id;
+        const rowResult = isSelected ? resultForSelected : null;
+        const cost = rowResult?.total_cost?.functional_amount;
+        const margin = sales && cost ? sales.amount - Number(cost) : null;
+        return `<div class="front-order-row ${isSelected ? "selected" : ""}" data-front-order="${escapeHtml(order.order_id)}"><div><strong>${escapeHtml(order.order_id)}</strong><small>${escapeHtml(order.payload?.order_date || "正式订单")}</small></div><div><strong>${escapeHtml(order.payload?.customer_id || "待接入客户")}</strong><small>${escapeHtml(order.payload?.product_id || "待接入产品")}</small></div><div class="front-number">${sales ? frontMoney(sales.amount, sales.currency) : "待接入"}</div><div class="front-number">${cost ? frontMoney(cost, rowResult.total_cost.functional_currency) : "待计算"}</div><div class="front-number">${margin === null ? "待计算" : frontMoney(margin, sales.currency)}</div><span class="front-status ${rowResult ? "good" : "warn"}">${rowResult ? "待复核" : "待计算"}</span><span class="front-status warn">${formalState.evidence?.evidence_coverage || 0}%</span></div>`;
+      }).join("") : `<div class="front-empty">当前租户暂无订单，请先接入 M02 EDP。</div>`;
+      document.querySelectorAll("[data-front-order]").forEach((row) => row.addEventListener("click", () => { formalState.selectedOrderId = row.dataset.frontOrder; renderFrontOffice(); }));
+      const sales = frontSales(selected);
+      const cost = resultForSelected?.total_cost;
+      const margin = sales && cost ? sales.amount - Number(cost.functional_amount) : null;
+      document.querySelector("#front-analysis-title").textContent = selected ? `订单分析：${selected.order_id}` : "选择订单后开始分析";
+      document.querySelector("#front-analysis-meta").textContent = selected ? `客户：${selected.payload?.customer_id || "待接入"}　|　产品：${selected.payload?.product_id || "待接入"}　|　来源：${selected.source_system}` : "订单、BOM、价格和汇率由 M02 EDP 提供";
+      document.querySelector("#front-analysis-state").textContent = resultForSelected ? `结果 V${resultForSelected.version}` : selected ? "待计算" : "待接入";
+      document.querySelector("#front-sales").textContent = sales ? frontMoney(sales.amount, sales.currency) : "待选择";
+      document.querySelector("#front-cost").textContent = cost ? frontMoney(cost.functional_amount, cost.functional_currency) : "待计算";
+      document.querySelector("#front-cost-status").textContent = cost ? `结果状态：${resultForSelected.status}` : "需先计算订单";
+      document.querySelector("#front-margin").textContent = margin === null ? "待计算" : frontMoney(margin, sales.currency);
+      document.querySelector("#front-margin-status").textContent = margin === null ? "生成结果后展示" : `毛利率：${sales.amount ? ((margin / sales.amount) * 100).toFixed(2) : "0.00"}%`;
+      document.querySelector("#front-review-badge").textContent = resultForSelected ? "待复核" : "待计算";
+      document.querySelector("#front-review-badge").className = `badge ${resultForSelected ? "warn" : "blue"}`;
+      document.querySelector("#front-hint").textContent = resultForSelected ? "结果已生成，证据仍需核验；外部复核接口接入后可提交复核。" : selected ? "提示：请先计算订单生成最新财经结果，确认输入证据后再提交复核。" : "提示：请先接入 M02 EDP 订单。";
+      const coverage = formalState.evidence?.evidence_coverage || 0;
+      document.querySelector("#front-evidence-coverage").textContent = `${coverage}%`;
+      document.querySelector("#front-evidence-progress").style.width = `${coverage}%`;
+      document.querySelector("#front-evidence-badge").textContent = formalState.evidence?.status === "VERIFIED" ? "已验证" : "待验证";
+      document.querySelector("#front-evidence-count").textContent = formalState.evidence ? `${formalState.evidence.evidence_refs.length} 项证据引用` : "待生成结果";
+      document.querySelector("#front-evidence-list").innerHTML = formalState.evidence ? `<div class="front-evidence-row"><span>财经结果</span><small>${escapeHtml(formalState.evidence.status)}</small></div><div class="front-evidence-row"><span>输入引用</span><small>${formalState.result?.evidence_refs?.length || 0} 项，待核验</small></div>` : `<div class="front-empty">生成财经结果后展示证据状态</div>`;
+      const external = document.querySelector("#front-external-list");
+      document.querySelector("#front-external-count").textContent = `${formalState.externalRequests.length} 项`;
+      external.innerHTML = formalState.externalRequests.length ? formalState.externalRequests.slice(0,3).map((item) => `<div class="front-external-row"><span>${escapeHtml(item.request_type)}<small>${escapeHtml(item.target_system)}</small></span><small>${escapeHtml(item.status)}</small></div>`).join("") : `<div class="front-empty">暂无外部处理请求</div>`;
+    };
     const setFormalWaiting = (message = "待接入 EDP 业务对象") => {
       const state = document.querySelector("#run-state");
       if (state) state.textContent = "A0 · 待接入";
@@ -256,6 +392,7 @@ def render_fac_page() -> str:
         const evidenceActivity = document.querySelector("[data-pane-panel=\"evidence\"] .activity");
         if (evidenceActivity) evidenceActivity.innerHTML = `<div class="activity-row"><span class="activity-time">FAC</span><code>finance.result</code><p>结果 ${escapeHtml(formalState.result.result_id)} 已生成，证据状态：${escapeHtml(formalState.evidence?.status || "WAITING_EVIDENCE")}，覆盖率 ${formalState.evidence?.evidence_coverage ?? 0}%。</p></div>`;
       }
+      renderFrontOffice();
     };
     const loadFormalState = async () => {
       try {
@@ -267,6 +404,18 @@ def render_fac_page() -> str:
           formalApi("/api/v1/fac/external-requests"),
         ]);
         Object.assign(formalState, {orders, rules, periods, events, externalRequests});
+        formalState.selectedOrderId = formalState.selectedOrderId || orders[0]?.order_id || null;
+        formalState.result = null;
+        formalState.evidence = null;
+        const selected = orders.find((item) => item.order_id === formalState.selectedOrderId) || orders[0];
+        if (selected) {
+          try {
+            formalState.result = await formalApi(`/api/v1/fac/orders/${encodeURIComponent(selected.order_id)}/financial-result?tenant_id=${encodeURIComponent(selected.tenant_id)}`);
+            formalState.evidence = await formalApi(`/api/v1/fac/results/${encodeURIComponent(formalState.result.result_id)}/evidence?tenant_id=${encodeURIComponent(selected.tenant_id)}`);
+          } catch (error) {
+            if (!String(error.message).includes("404")) throw error;
+          }
+        }
         renderFormalCollections();
       } catch (error) {
         setFormalWaiting(`正式数据加载失败：${error.message}`);
@@ -274,7 +423,7 @@ def render_fac_page() -> str:
       }
     };
     const calculateFormalOrder = async () => {
-      const order = formalState.orders[0];
+      const order = formalState.orders.find((item) => item.order_id === formalState.selectedOrderId) || formalState.orders[0];
       if (!order) { setFormalWaiting("暂无 EDP 订单，当前状态：待接入"); toast("暂无可计算订单：请先接入 M02 EDP"); return; }
       const refs = order.input_refs || [{object_type:"Order", object_id:order.order_id, source_system:order.source_system, revision:order.revision}];
       const body = {tenant_id:order.tenant_id, order_id:order.order_id, period_id:formalState.periods[0]?.period_id || "未配置期间", rule_id:formalState.rules[0]?.rule_id || "OFA_PLAN_COST", rule_version:formalState.rules[0]?.version || "v1", input_refs:refs, actor:"fac-user", idempotency_key:`fac-ui-${order.order_id}-${Date.now()}`, reason:"正式工作台订单财经计算"};
@@ -325,6 +474,15 @@ def render_fac_page() -> str:
       current.replaceWith(button);
       button.addEventListener("click", loadFormalState);
     });
+    const frontNavCopy = {control:"订单分析", events:"系统详情", results:"财经结果", agents:"智能体协同", guards:"复核管理", actions:"待外部处理", evidence:"证据管理"};
+    document.querySelectorAll(".nav button").forEach((button) => {
+      const label = button.querySelector("span:last-child");
+      if (label && frontNavCopy[button.dataset.pane]) label.textContent = frontNavCopy[button.dataset.pane];
+    });
+    const brandSubline = document.querySelector(".brand small");
+    if (brandSubline) brandSubline.textContent = "M09 · 财经自治中心";
+    mountFrontOffice();
+    renderFrontOffice();
     loadFormalState();
   </script>
 '''

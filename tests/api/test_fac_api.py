@@ -104,6 +104,11 @@ def test_formal_fac_calculation_api_uses_edp_refs_and_returns_versioned_result(t
     assert response.status_code == 200
     assert response.json()["result"]["total_cost"]["functional_amount"] == "46.00"
     assert response.json()["result"]["version"] == 1
+    latest = client.get(
+        "/api/v1/fac/orders/ORD-1001/financial-result", params={"tenant_id": "tenant-a"}
+    )
+    assert latest.status_code == 200
+    assert latest.json()["result_id"] == "Order:ORD-1001:plan:v1"
 
 
 def test_formal_integration_projection_reflects_calculated_result(tmp_path, monkeypatch):
