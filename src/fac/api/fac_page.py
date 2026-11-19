@@ -80,7 +80,7 @@ def render_fac_page() -> str:
 </head>
 <body>
   <div class="app">
-    <aside class="rail" aria-label="AEOS FAC 导航"><div class="brand"><div class="brand-mark">F</div><div><strong>FAC</strong><small>AEOS M09 · 财经自治中心</small></div></div><div class="module">M09 工作台</div><nav class="nav"><button class="active" data-pane="control" aria-current="page"><span class="nav-icon">⌘</span><span>控制台</span></button><button data-pane="events"><span class="nav-icon">↯</span><span>事件总线</span></button><button data-pane="results"><span class="nav-icon">▣</span><span>财经结果</span></button><button data-pane="agents"><span class="nav-icon">◌</span><span>智能体注册</span></button><button data-pane="guards"><span class="nav-icon">◇</span><span>防护 / 决策</span></button><button data-pane="actions"><span class="nav-icon">→</span><span>POMS 动作</span></button><button data-pane="evidence"><span class="nav-icon">▤</span><span>证据</span></button></nav><div class="rail-bottom"><strong>AEOS V7.2.2</strong><span>本地联调沙箱</span></div></aside>
+    <aside class="rail" aria-label="AEOS FAC 导航"><div class="brand"><div class="brand-mark">F</div><div><strong>FAC</strong><small>AEOS M09 · 财经自治中心</small></div></div><div class="module">M09 工作台</div><nav class="nav"><button class="active" data-pane="control" aria-current="page"><span class="nav-icon">⌘</span><span>控制台</span></button><button data-pane="results"><span class="nav-icon">▣</span><span>财经结果</span></button><button data-pane="guards"><span class="nav-icon">◇</span><span>防护 / 决策</span></button><button data-pane="actions"><span class="nav-icon">→</span><span>POMS 动作</span></button><button data-pane="evidence"><span class="nav-icon">▤</span><span>证据</span></button><div class="nav-more" data-nav-more><button class="nav-more-toggle" type="button" data-nav-more-toggle aria-expanded="false"><span class="nav-icon">＋</span><span>更多模块</span></button><div class="nav-secondary" data-nav-secondary><button data-pane="events"><span class="nav-icon">↯</span><span>系统详情</span></button><button data-pane="agents"><span class="nav-icon">◌</span><span>智能体协同</span></button></div></div></nav><div class="rail-bottom"><strong>AEOS V7.2.2</strong><span>本地联调沙箱</span></div></aside>
     <section class="main"><header class="topbar"><div class="crumb"><span>AEOS</span><b>/</b><span>M09</span><b>/</b> FAC 财经自治中心</div><div class="top-actions"><span class="environment"><i class="pulse"></i><span id="system-status">系统在线</span></span><span class="tenant">租户：demo-tenant</span><span>本地</span></div></header>
       <main class="page"><div class="toast" id="toast" role="status"></div>
         <section class="pane active" data-pane-panel="control"><div class="page-head"><div><div class="eyebrow">M09 · 联调控制台</div><h1>FAC 财经自治中心</h1><p class="subtitle">业务事实进入 EDP，FAC 负责财经判断，智能体、防护与动作形成可验证闭环。</p></div><div class="head-right"><span class="state"><i class="pulse"></i><span id="run-state">A0 · 观察</span></span><button class="button" id="replay">重放最近事件</button><button class="button primary" id="run">运行联调演示</button></div></div>
@@ -103,8 +103,10 @@ def render_fac_page() -> str:
     const qs = (selector, root = document) => root.querySelector(selector); const qsa = (selector, root = document) => [...root.querySelectorAll(selector)];
     const toast = (message) => { const element = qs("#toast"); element.textContent = message; element.classList.add("show"); window.clearTimeout(window.facToastTimer); window.facToastTimer = window.setTimeout(() => element.classList.remove("show"), 2500); };
     const api = async (path, options = {}) => { const response = await fetch(path, {headers:{"Content-Type":"application/json"}, ...options}); const payload = await response.json(); if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`); return payload; };
-    const setPane = (name) => { qsa(".nav button").forEach((button) => { const active = button.dataset.pane === name; button.classList.toggle("active", active); if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current"); }); qsa(".pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.panePanel === name)); window.scrollTo({top:0, behavior:"smooth"}); };
-    qsa(".nav button").forEach((button) => button.addEventListener("click", () => setPane(button.dataset.pane))); qsa("[data-pane-link]").forEach((button) => button.addEventListener("click", () => setPane(button.dataset.paneLink)));
+    const setPane = (name) => { qsa(".nav button[data-pane]").forEach((button) => { const active = button.dataset.pane === name; button.classList.toggle("active", active); if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current"); }); qsa(".pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.panePanel === name)); window.scrollTo({top:0, behavior:"smooth"}); };
+    qsa(".nav button[data-pane]").forEach((button) => button.addEventListener("click", () => setPane(button.dataset.pane))); qsa("[data-pane-link]").forEach((button) => button.addEventListener("click", () => setPane(button.dataset.paneLink)));
+    const navMore = document.querySelector("[data-nav-more]"); const navMoreToggle = document.querySelector("[data-nav-more-toggle]");
+    navMoreToggle?.addEventListener("click", () => { const expanded = !navMore.classList.contains("expanded"); navMore.classList.toggle("expanded", expanded); navMoreToggle.setAttribute("aria-expanded", String(expanded)); });
     qsa("[data-action='refresh']").forEach((button) => button.addEventListener("click", () => toast("投影、事件与证据状态已刷新"))); qsa("[data-action='action']").forEach((button) => button.addEventListener("click", () => { button.textContent = "已创建动作"; toast("POMS 动作已创建，等待执行反馈"); }));
     const statusLabels = {WAITING:"待运行", WAITING_EXTERNAL:"待外部处理", WAITING_EVIDENCE:"待验证", READY:"可调度", COMPLETED:"已完成", APPROVED:"已批准", BLOCKED:"已阻断", GUARDED:"受保护", VERIFIED:"已验证", CONSUMED:"已消费", PROCESSED:"已处理", ACKED:"已确认", REVIEW:"待复核", PENDING:"待决策", ALLOW:"允许", DENY:"拒绝"};
     const statusClass = (status) => ["COMPLETED","APPROVED","VERIFIED","CONSUMED","PROCESSED","ACKED"].includes(status) ? "good" : ["BLOCKED","DENY","GUARDED"].includes(status) ? "bad" : ["READY","WAITING","REVIEW","PENDING"].includes(status) ? "warn" : "blue";
@@ -251,6 +253,12 @@ def render_fac_page() -> str:
   .front-evidence-row span, .front-external-row span { color:#c9dce8; }
   .front-evidence-row small, .front-external-row small { color:#f2c078; text-align:right; }
   .front-empty { padding:24px 12px; color:var(--muted); text-align:center; }
+  .nav-more { margin-top:8px; padding-top:8px; border-top:1px solid rgba(103,160,196,.14); }
+  .nav-more-toggle { color:#8ea8bb; }
+  .nav-more-toggle:hover, .nav-more.expanded .nav-more-toggle { color:#dbeaf5; background:rgba(66,163,226,.1); }
+  .nav-secondary { display:none; gap:4px; margin-top:4px; }
+  .nav-more.expanded .nav-secondary { display:grid; }
+  .nav-secondary button { color:#8ea8bb; }
   #integration-details { display:none; }
   @media (max-width:900px) { .front-table-head, .front-order-row { grid-template-columns:1fr 1fr 1fr; } .front-table-head span:nth-child(n+4), .front-order-row > :nth-child(n+4) { display:none; } .front-grid, .front-bottom { grid-template-columns:1fr; } }
   @media (max-width:560px) { .front-shell { padding-top:20px; } .front-head { display:block; } .front-system-link { display:inline-block; margin-top:14px; } .front-metrics { grid-template-columns:1fr; } .front-actions { flex-direction:column; } .front-actions .button { width:100%; } .front-order-row { grid-template-columns:1fr 1fr; } .front-order-row > :nth-child(n+3) { display:none; } }
@@ -475,7 +483,7 @@ def render_fac_page() -> str:
       button.addEventListener("click", loadFormalState);
     });
     const frontNavCopy = {control:"订单分析", events:"系统详情", results:"财经结果", agents:"智能体协同", guards:"复核管理", actions:"待外部处理", evidence:"证据管理"};
-    document.querySelectorAll(".nav button").forEach((button) => {
+    document.querySelectorAll(".nav button[data-pane]").forEach((button) => {
       const label = button.querySelector("span:last-child");
       if (label && frontNavCopy[button.dataset.pane]) label.textContent = frontNavCopy[button.dataset.pane];
     });
