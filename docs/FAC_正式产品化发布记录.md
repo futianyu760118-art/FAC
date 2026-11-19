@@ -5,8 +5,8 @@
 - 发布日期：2026-11-19
 - 发布目标：腾讯云同一公网入口 `http://150.158.13.110:18000/fac`
 - 运行容器：`fac-fac-1`
-- 镜像：`fac-formal:20261119-r2`
-- 镜像摘要：`sha256:bb4e7b2543dd9b27efabec842f86361bc4147191343fd84c89d58d6484dd4a43`
+- 镜像：`fac-formal:20261119-r3`
+- 镜像摘要：`sha256:bbbb43c2c966bf640f8f9d25f78d6f1359accd45806114c48e99c1d718aed3d6`
 - 正式数据目录：`/home/ubuntu/fac-formal-data-20261119-prod`
 - 数据库：`/app/data/fac.db`，由宿主机目录持久化
 - 正式配置：`FAC_DEMO_ENABLED=false`、`FAC_ENVIRONMENT=production`、`FAC_TENANT_ID=tenant-a`
@@ -28,7 +28,8 @@
 - 订单财经计算：`Order:ORD-001:plan:v1`，总成本 `834.00 CNY`。
 - 证据查询：`WAITING_EVIDENCE`，覆盖率 `0%`。外部证据未接入时没有伪造“已验证”。
 - 公网页面：`/fac` 正式文案、正式 API hooks、`计算订单` 和 `待外部处理` 可见；旧 Demo 文案不可见。
-- 浏览器验收：无 console error；结果页显示金额和版本，证据页显示待验证状态。
+- 前台工作台：首屏以订单财经分析为主，支持选择订单、查看销售金额/计划成本/预计毛利、计算订单、提交复核、查看证据覆盖率和待外部处理；系统事件等后台信息收纳到“系统详情”。
+- 浏览器验收：公网首屏显示 `订单财经分析`、`ORD-001`、`834.00 CNY`、`0%` 证据覆盖率；点击“系统详情”可进入后台台账；点击“计算订单”无 console error。
 - 重启验收：重启 `fac-fac-1` 后 `ORD-001` 和 `Order:ORD-001:plan:v1` 仍可查询。
 
 ## 旧版本保留与回滚
@@ -39,6 +40,8 @@
 - 镜像：`fac-demo:20261119-fast2`
 - 上一版正式回滚容器：`fac-fac-formal-r1-rollback-20261119`
 - 上一版正式镜像：`fac-formal:20261119`
+- 本次发布前正式回滚容器：`fac-fac-formal-r2-rollback-20261119`
+- 本次发布前正式镜像：`fac-formal:20261119-r2`
 - 旧 Demo 数据备份：`/home/ubuntu/fac-rollback-20261119/fac_demo.db`
 - 旧容器与镜像 inspect：同目录下的 `old-container-inspect.json`、`old-image-inspect.json`
 
@@ -46,8 +49,8 @@
 
 ```bash
 docker stop fac-fac-1
-docker rename fac-fac-1 fac-fac-formal-r2-failed-20261119
-docker rename fac-fac-formal-r1-rollback-20261119 fac-fac-1
+docker rename fac-fac-1 fac-fac-formal-r3-failed-20261119
+docker rename fac-fac-formal-r2-rollback-20261119 fac-fac-1
 docker start fac-fac-1
 curl -fsS http://127.0.0.1:18000/health
 ```
