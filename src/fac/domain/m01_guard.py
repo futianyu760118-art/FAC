@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class FinanceGuardAction(StrEnum):
