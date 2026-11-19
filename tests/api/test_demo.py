@@ -37,6 +37,17 @@ def test_full_fac_workbench_is_exposed_when_demo_is_enabled(monkeypatch):
         "运行联调演示",
     ):
         assert text in response.text
+    for hook in (
+        "integration-overview",
+        "integration-events",
+        "agent-registry-list",
+        "decision-case-list",
+        "poms-action-list",
+        "verify-summary",
+        "M13 Registry 沙箱",
+        "Value Ledger",
+    ):
+        assert hook in response.text
 
 
 def test_demo_trigger_contract_contains_version_and_audit_fields():
