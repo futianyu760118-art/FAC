@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from fac.api.routes.health import router as health_router
 from fac.api.routes.imports import router as import_router
+from fac.api.routes.fac import router as fac_router
 from fac.infrastructure.db import get_session
 from fac.settings import get_settings
 
@@ -15,6 +16,7 @@ def create_app(session_factory: sessionmaker[Session] | None = None) -> FastAPI:
     app.state.settings = get_settings()
     app.include_router(health_router)
     app.include_router(import_router)
+    app.include_router(fac_router)
     if app.state.settings.demo_enabled:
         from fac.api.routes.demo import router as demo_router
 
