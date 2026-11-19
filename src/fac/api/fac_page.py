@@ -80,7 +80,7 @@ def render_fac_page() -> str:
 </head>
 <body>
   <div class="app">
-    <aside class="rail" aria-label="AEOS FAC 导航"><div class="brand"><div class="brand-mark">F</div><div><strong>FAC</strong><small>AEOS M09 · 财经自治中心</small></div></div><div class="module">M09 工作台</div><nav class="nav"><button class="active" data-pane="control" aria-current="page"><span class="nav-icon">⌘</span><span>控制台</span></button><button data-pane="results"><span class="nav-icon">▣</span><span>财经结果</span></button><button data-pane="guards"><span class="nav-icon">◇</span><span>防护 / 决策</span></button><button data-pane="actions"><span class="nav-icon">→</span><span>POMS 动作</span></button><button data-pane="evidence"><span class="nav-icon">▤</span><span>证据</span></button><div class="nav-more" data-nav-more><button class="nav-more-toggle" type="button" data-nav-more-toggle aria-expanded="false"><span class="nav-icon">＋</span><span>更多模块</span></button><div class="nav-secondary" data-nav-secondary><button data-pane="events"><span class="nav-icon">↯</span><span>系统详情</span></button><button data-pane="agents"><span class="nav-icon">◌</span><span>智能体协同</span></button></div></div></nav><div class="rail-bottom"><strong>AEOS V7.2.2</strong><span>本地联调沙箱</span></div></aside>
+    <aside class="rail" aria-label="AEOS FAC 导航"><div class="brand"><div class="brand-mark">F</div><div><strong>FAC</strong><small>AEOS M09 · 财经自治中心</small></div></div><div class="module">M09 工作台</div><nav class="nav"><button class="active" data-pane="control" aria-current="page"><span class="nav-icon">⌘</span><span>控制台</span></button><button data-pane="results"><span class="nav-icon">▣</span><span>财经结果</span></button><button data-pane="guards"><span class="nav-icon">◇</span><span>防护 / 决策</span></button><button data-pane="actions"><span class="nav-icon">→</span><span>POMS 动作</span></button><button data-pane="evidence"><span class="nav-icon">▤</span><span>证据</span></button><div class="nav-more" data-nav-more><button class="nav-more-toggle" type="button" data-nav-more-toggle aria-expanded="false"><span class="nav-icon">＋</span><span>更多模块</span></button><div class="nav-secondary" data-nav-secondary><button data-pane="events"><span class="nav-icon">↯</span><span>系统详情</span></button><button data-pane="agents"><span class="nav-icon">◌</span><span>智能体协同</span></button><button data-pane="settings"><span class="nav-icon">⚙</span><span>标准 / 设置 / 接口</span></button></div></div></nav><div class="rail-bottom"><strong>AEOS V7.2.2</strong><span>本地联调沙箱</span></div></aside>
     <section class="main"><header class="topbar"><div class="crumb"><span>AEOS</span><b>/</b><span>M09</span><b>/</b> FAC 财经自治中心</div><div class="top-actions"><span class="environment"><i class="pulse"></i><span id="system-status">系统在线</span></span><span class="tenant">租户：demo-tenant</span><span>本地</span></div></header>
       <main class="page"><div class="toast" id="toast" role="status"></div>
         <section class="pane active" data-pane-panel="control"><div class="page-head"><div><div class="eyebrow">M09 · 联调控制台</div><h1>FAC 财经自治中心</h1><p class="subtitle">业务事实进入 EDP，FAC 负责财经判断，智能体、防护与动作形成可验证闭环。</p></div><div class="head-right"><span class="state"><i class="pulse"></i><span id="run-state">A0 · 观察</span></span><button class="button" id="replay">重放最近事件</button><button class="button primary" id="run">运行联调演示</button></div></div>
@@ -259,7 +259,17 @@ def render_fac_page() -> str:
   .nav-secondary { display:none; gap:4px; margin-top:4px; }
   .nav-more.expanded .nav-secondary { display:grid; }
   .nav-secondary button { color:#8ea8bb; }
+  .settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:17px; margin-top:17px; }
+  .settings-card { padding:20px; }
+  .settings-card h2 { margin:0; font-size:18px; }
+  .settings-card > p { margin:7px 0 0; color:var(--muted); font-size:12px; }
+  .settings-list { display:grid; gap:8px; margin-top:16px; }
+  .settings-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:11px 0; border-top:1px solid rgba(103,160,196,.13); }
+  .settings-row strong { display:block; font-size:12px; }
+  .settings-row small { display:block; margin-top:4px; color:var(--muted); font-size:11px; }
+  .settings-note { margin-top:17px; padding:13px 15px; border:1px dashed #31566d; border-radius:8px; color:#9db4c5; font-size:12px; line-height:1.6; }
   #integration-details { display:none; }
+  @media (max-width:900px) { .settings-grid { grid-template-columns:1fr; } }
   @media (max-width:900px) { .front-table-head, .front-order-row { grid-template-columns:1fr 1fr 1fr; } .front-table-head span:nth-child(n+4), .front-order-row > :nth-child(n+4) { display:none; } .front-grid, .front-bottom { grid-template-columns:1fr; } }
   @media (max-width:560px) { .front-shell { padding-top:20px; } .front-head { display:block; } .front-system-link { display:inline-block; margin-top:14px; } .front-metrics { grid-template-columns:1fr; } .front-actions { flex-direction:column; } .front-actions .button { width:100%; } .front-order-row { grid-template-columns:1fr 1fr; } .front-order-row > :nth-child(n+3) { display:none; } }
 </style>
@@ -287,6 +297,19 @@ def render_fac_page() -> str:
       const quantity = Number(payload.quantity || 0);
       const unit = Number(payload.unit_price?.amount || 0);
       return quantity && unit ? {amount: quantity * unit, currency: payload.unit_price.currency || "CNY"} : null;
+    };
+    const mountSettingsPane = () => {
+      const page = document.querySelector("main.page");
+      if (!page || document.querySelector('[data-pane-panel="settings"]')) return;
+      page.insertAdjacentHTML("beforeend", `<section class="pane" data-pane-panel="settings">
+        <div class="page-head"><div><div class="eyebrow">M09 · 后台配置</div><h1>标准 / 设置 / 接口</h1><p class="subtitle">财经业务操作保持在前台；标准、参数和系统接口集中放在这里维护与查看。</p></div><div class="head-right"><span class="badge blue">后台配置区</span></div></div>
+        <div class="settings-grid">
+          <article class="panel settings-card"><h2>财经标准与规则</h2><p>版本化规则、来源字段和证据要求。</p><div class="settings-list" id="settings-rule-list"><div class="front-empty">正在加载规则…</div></div></article>
+          <article class="panel settings-card"><h2>期间与运行设置</h2><p>本位币、期间状态和正式运行边界。</p><div class="settings-list" id="settings-period-list"><div class="front-empty">正在加载期间…</div></div></article>
+          <article class="panel settings-card"><h2>系统接口</h2><p>外部系统接入状态和待接入边界。</p><div class="settings-list" id="settings-interface-list"></div></article>
+          <article class="panel settings-card"><h2>当前运行配置</h2><p>仅展示当前租户的运行边界，不在前台业务流程中打扰操作。</p><div class="settings-list"><div class="settings-row"><div><strong>运行环境</strong><small>正式环境 · production</small></div><span class="badge good">已启用</span></div><div class="settings-row"><div><strong>Demo 模式</strong><small>正式入口不暴露演示接口</small></div><span class="badge good">已关闭</span></div><div class="settings-row"><div><strong>租户范围</strong><small>当前租户 · tenant-a</small></div><span class="badge blue">已隔离</span></div></div></article>
+        </div><div class="settings-note">配置变更应通过正式审批和版本发布流程完成；当前页面先提供标准、设置和接口状态的集中查看入口。</div>
+      </section>`);
     };
     const mountFrontOffice = () => {
       const pane = document.querySelector('[data-pane-panel="control"]');
@@ -384,6 +407,12 @@ def render_fac_page() -> str:
       if (decisions) decisions.innerHTML = `<div class="projection-row"><div><strong>M01 决策案例</strong><small>财经结果生成后进入人工复核</small></div><div class="right"><span class="badge warn">待生成</span></div></div>`;
       const actions = document.querySelector("#poms-action-list");
       if (actions) actions.innerHTML = `<div class="projection-row"><div><strong>M10 POMS 动作</strong><small>外部动作接口已预留</small></div><div class="right"><span class="badge warn">待外部处理</span></div></div>`;
+      const settingsRules = document.querySelector("#settings-rule-list");
+      if (settingsRules) settingsRules.innerHTML = formalState.rules.length ? formalState.rules.map((rule) => `<div class="settings-row"><div><strong>${escapeHtml(rule.rule_name)} · ${escapeHtml(rule.rule_id)}</strong><small>版本 ${escapeHtml(rule.version)} · 生效 ${escapeHtml(rule.effective_from)} · ${rule.evidence_required ? "需要证据" : "无需证据"}</small></div><span class="badge ${statusClass(rule.status)}">${statusText(rule.status)}</span></div>`).join("") : `<div class="front-empty">暂无财经规则，请先接入规则注册表。</div>`;
+      const settingsPeriods = document.querySelector("#settings-period-list");
+      if (settingsPeriods) settingsPeriods.innerHTML = formalState.periods.length ? formalState.periods.map((period) => `<div class="settings-row"><div><strong>${escapeHtml(period.period_id)}</strong><small>本位币 ${escapeHtml(period.functional_currency)}${period.closed_at ? ` · 关闭于 ${escapeHtml(period.closed_at)}` : ""}</small></div><span class="badge ${statusClass(period.status)}">${statusText(period.status)}</span></div>`).join("") : `<div class="front-empty">暂无财经期间，请先配置期间。</div>`;
+      const settingsInterfaces = document.querySelector("#settings-interface-list");
+      if (settingsInterfaces) settingsInterfaces.innerHTML = `<div class="settings-row"><div><strong>M02 EDP</strong><small>订单、BOM、价格、汇率、证据</small></div><span class="badge ${formalState.orders.length ? "good" : "warn"}">${formalState.orders.length ? "已接入" : "待接入"}</span></div><div class="settings-row"><div><strong>M13 Agent</strong><small>智能体注册与能力查询</small></div><span class="badge warn">待接入</span></div><div class="settings-row"><div><strong>M01 Guard</strong><small>决策案例与职责分离</small></div><span class="badge warn">待接入</span></div><div class="settings-row"><div><strong>M10 POMS / EBMS</strong><small>动作执行、反馈和结果消费</small></div><span class="badge warn">待接入</span></div>`;
       setFormalWaiting();
       if (formalState.result) {
         const resultId = document.querySelector("#result-id"); if (resultId) resultId.textContent = formalState.result.result_id;
@@ -482,13 +511,14 @@ def render_fac_page() -> str:
       current.replaceWith(button);
       button.addEventListener("click", loadFormalState);
     });
-    const frontNavCopy = {control:"订单分析", events:"系统详情", results:"财经结果", agents:"智能体协同", guards:"复核管理", actions:"待外部处理", evidence:"证据管理"};
+    const frontNavCopy = {control:"订单分析", events:"系统详情", results:"财经结果", agents:"智能体协同", guards:"复核管理", actions:"待外部处理", evidence:"证据管理", settings:"标准 / 设置 / 接口"};
     document.querySelectorAll(".nav button[data-pane]").forEach((button) => {
       const label = button.querySelector("span:last-child");
       if (label && frontNavCopy[button.dataset.pane]) label.textContent = frontNavCopy[button.dataset.pane];
     });
     const brandSubline = document.querySelector(".brand small");
     if (brandSubline) brandSubline.textContent = "M09 · 财经自治中心";
+    mountSettingsPane();
     mountFrontOffice();
     renderFrontOffice();
     loadFormalState();

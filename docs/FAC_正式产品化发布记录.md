@@ -5,8 +5,8 @@
 - 发布日期：2026-11-19
 - 发布目标：腾讯云同一公网入口 `http://150.158.13.110:18000/fac`
 - 运行容器：`fac-fac-1`
-- 镜像：`fac-formal:20261119-r4`
-- 镜像摘要：`sha256:71192995089f2194068ef038ef43656499fd92beafac2105190b9c5f97a0e993`
+- 镜像：`fac-formal:20261119-r5`
+- 镜像摘要：`sha256:ff04345c86fdb78809f93f952901aa4d68b4b6a72eadda0532a5c256351c59cb`
 - 正式数据目录：`/home/ubuntu/fac-formal-data-20261119-prod`
 - 数据库：`/app/data/fac.db`，由宿主机目录持久化
 - 正式配置：`FAC_DEMO_ENABLED=false`、`FAC_ENVIRONMENT=production`、`FAC_TENANT_ID=tenant-a`
@@ -28,8 +28,9 @@
 - 订单财经计算：`Order:ORD-001:plan:v1`，总成本 `834.00 CNY`。
 - 证据查询：`WAITING_EVIDENCE`，覆盖率 `0%`。外部证据未接入时没有伪造“已验证”。
 - 公网页面：`/fac` 正式文案、正式 API hooks、`计算订单` 和 `待外部处理` 可见；旧 Demo 文案不可见。
-- 前台工作台：首屏以订单财经分析为主，支持选择订单、查看销售金额/计划成本/预计毛利、计算订单、提交复核、查看证据覆盖率和待外部处理；系统事件、智能体协同等后台模块默认收纳到“更多模块”。
+- 前台工作台：首屏以订单财经分析为主，支持选择订单、查看销售金额/计划成本/预计毛利、计算订单、提交复核、查看证据覆盖率和待外部处理；系统事件、智能体协同、财经标准、运行设置和外部接口等后台模块默认收纳到“更多模块”。
 - 浏览器验收：公网首屏显示 `订单财经分析`、`ORD-001`、`834.00 CNY`、`0%` 证据覆盖率；点击“系统详情”可进入后台台账；点击“计算订单”无 console error。
+- 配置导航验收：展开“更多模块”后可进入“标准 / 设置 / 接口”，集中查看财经规则、期间、运行配置和 M02/M13/M01/M10/EBMS 接入状态。
 - 重启验收：重启 `fac-fac-1` 后 `ORD-001` 和 `Order:ORD-001:plan:v1` 仍可查询。
 
 ## 旧版本保留与回滚
@@ -40,8 +41,8 @@
 - 镜像：`fac-demo:20261119-fast2`
 - 上一版正式回滚容器：`fac-fac-formal-r1-rollback-20261119`
 - 上一版正式镜像：`fac-formal:20261119`
-- 本次发布前正式回滚容器：`fac-fac-formal-r3-rollback-20261119`
-- 本次发布前正式镜像：`fac-formal:20261119-r3`
+- 本次发布前正式回滚容器：`fac-fac-formal-r4-rollback-20261119`
+- 本次发布前正式镜像：`fac-formal:20261119-r4`
 - 旧 Demo 数据备份：`/home/ubuntu/fac-rollback-20261119/fac_demo.db`
 - 旧容器与镜像 inspect：同目录下的 `old-container-inspect.json`、`old-image-inspect.json`
 
@@ -49,8 +50,8 @@
 
 ```bash
 docker stop fac-fac-1
-docker rename fac-fac-1 fac-fac-formal-r4-failed-20261119
-docker rename fac-fac-formal-r3-rollback-20261119 fac-fac-1
+docker rename fac-fac-1 fac-fac-formal-r5-failed-20261119
+docker rename fac-fac-formal-r4-rollback-20261119 fac-fac-1
 docker start fac-fac-1
 curl -fsS http://127.0.0.1:18000/health
 ```
