@@ -108,3 +108,41 @@ def test_demo_state_tolerates_a_run_without_a_persisted_result(tmp_path):
 
         assert len(state.calculations) == 1
         assert state.results == (None,)
+
+
+def test_integration_state_exposes_complete_workflow_and_guarded_payment(tmp_path):
+    with _session(tmp_path) as session:
+        service = _demo_service(session)
+        service.reset()
+
+        waiting = service.integration_state()
+        assert waiting.correlation_id == "FAC-DEMO-2025-01"
+        assert [stage.module for stage in waiting.stages] == [
+            "M02 EDP",
+            "M09 FAC",
+            "M13 Agent",
+            "M01 Guard",
+            "M10 POMS",
+            "FAC Verify",
+            "EBMS",
+        ]
+        assert all(stage.status == "WAITING" for stage in waiting.stages)
+
+        service.trigger(_request(1, "demo-event-v1", "demo-key-v1", "Initial quote"))
+        after_v1 = service.integration_state()
+        assert after_v1.stage("M02 EDP").status == "COMPLETED"
+        assert after_v1.stage("M09 FAC").status == "COMPLETED"
+        assert after_v1.stage("M13 Agent").status == "READY"
+        assert after_v1.stage("M01 Guard").status == "WAITING"
+
+        service.trigger(
+            _request(2, "demo-event-v2", "demo-key-v2", "MaterialPriceRevision")
+        )
+        completed = service.integration_state()
+        assert all(stage.status == "COMPLETED" for stage in completed.stages)
+        assert any(agent.dispatchable for agent in completed.agents)
+        assert any(case.status == "BLOCKED" for case in completed.decision_cases)
+        assert any(action.status == "COMPLETED" for action in completed.actions)
+        assert completed.verify.status == "VERIFIED"
+        assert completed.verify.evidence_coverage == 100
+        assert completed.ebms_status == "CONSUMED"
