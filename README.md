@@ -54,3 +54,11 @@ Open `http://127.0.0.1:8000/demo/fac`, then run the workflow in order:
 4. 重放最近事件 — no duplicate result
 
 The Demo is disabled by default through `FAC_DEMO_ENABLED=false`.
+
+## Run the full FAC workbench
+
+Open `http://127.0.0.1:8000/fac` for the complete local FAC product workbench.
+It includes the finance overview, revenue and margin, order finance, AR, cash,
+budget, risk, and evidence views. The order finance module runs the real local
+OFA calculation path; the other modules use clearly labeled management-finance
+demo data for interaction and presentation.

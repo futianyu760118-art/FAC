@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from fac.api.demo_page import render_demo_page
+from fac.api.fac_page import render_fac_page
 from fac.contracts.demo import (
     DemoResetResponse,
     DemoStateResponse,
@@ -23,6 +24,11 @@ router = APIRouter(tags=["FAC Demo"])
 @router.get("/demo/fac", response_class=HTMLResponse)
 def demo_page() -> str:
     return render_demo_page()
+
+
+@router.get("/fac", response_class=HTMLResponse)
+def fac_page() -> str:
+    return render_fac_page()
 
 
 @router.post("/api/v1/demo/reset", response_model=DemoResetResponse)

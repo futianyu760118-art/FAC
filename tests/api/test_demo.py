@@ -21,6 +21,24 @@ def test_demo_route_is_exposed_when_demo_is_enabled(monkeypatch):
     assert response.status_code == 200
 
 
+def test_full_fac_workbench_is_exposed_when_demo_is_enabled(monkeypatch):
+    monkeypatch.setenv("FAC_DEMO_ENABLED", "true")
+    response = TestClient(create_app()).get("/fac")
+
+    assert response.status_code == 200
+    for text in (
+        "财经健康总览",
+        "收入与毛利",
+        "订单财经",
+        "应收 AR",
+        "资金 Cash",
+        "预算 Budget",
+        "风险与证据",
+        "run-ofa",
+    ):
+        assert text in response.text
+
+
 def test_demo_trigger_contract_contains_version_and_audit_fields():
     assert importlib.util.find_spec("fac.contracts.demo") is not None
     contracts = importlib.import_module("fac.contracts.demo")
