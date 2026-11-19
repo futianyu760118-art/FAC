@@ -79,3 +79,23 @@ def test_demo_api_runs_calculation_recalculation_and_replay(tmp_path, monkeypatc
     assert state.status_code == 200
     assert len(state.json()["calculations"]) == 2
     assert len(state.json()["results"]) == 2
+
+
+def test_demo_page_contains_the_finance_workbench_workflow(monkeypatch):
+    monkeypatch.setenv("FAC_DEMO_ENABLED", "true")
+    response = TestClient(create_app()).get("/demo/fac")
+
+    assert response.status_code == 200
+    for text in (
+        "FAC Demo",
+        "ORD-1001",
+        "初始化 Demo 数据",
+        "运行初次计算",
+        "价格修正并重算",
+        "重放最近事件",
+        "CalculationSnapshot",
+        "V1",
+        "V2",
+        "checksum",
+    ):
+        assert text in response.text
