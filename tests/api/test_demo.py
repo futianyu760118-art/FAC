@@ -30,10 +30,10 @@ def test_full_fac_workbench_is_exposed_when_demo_is_enabled(monkeypatch):
         "FAC 财经自治中心",
         "真实系统联调主干",
         "M02 EDP",
-        "M13 Agent",
-        "M01 Guard",
+        "M13 智能体",
+        "M01 防护",
         "M10 POMS",
-        "Event Ledger",
+        "事件台账",
         "运行联调演示",
     ):
         assert text in response.text
@@ -146,13 +146,13 @@ def test_demo_page_contains_the_finance_workbench_workflow(monkeypatch):
 
     assert response.status_code == 200
     for text in (
-        "FAC Demo",
+        "FAC 演示",
         "ORD-1001",
-        "初始化 Demo 数据",
+        "初始化演示数据",
         "运行初次计算",
         "价格修正并重算",
         "重放最近事件",
-        "CalculationSnapshot",
+        "计算快照",
         "V1",
         "V2",
         "checksum",

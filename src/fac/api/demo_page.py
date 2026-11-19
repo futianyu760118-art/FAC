@@ -7,7 +7,7 @@ def render_demo_page() -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FAC Demo · Finance Autonomous Center</title>
+  <title>FAC 演示 · 财经自治中心</title>
   <style>
     :root { --ink:#14202b; --muted:#687582; --paper:#f4f1ea; --panel:#fffdf8;
       --line:#ddd8ce; --navy:#162733; --mint:#d7f1dc; --green:#23734a;
@@ -107,33 +107,33 @@ def render_demo_page() -> str:
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="brand-mark">F</div><div><strong>FAC</strong><small>Finance Autonomous Center</small></div></div>
-    <div class="demo-tag">Local Demo · V3</div>
+    <div class="brand"><div class="brand-mark">F</div><div><strong>FAC</strong><small>财经自治中心</small></div></div>
+    <div class="demo-tag">本地演示 · V3</div>
   </header>
   <main class="shell">
     <section class="intro">
       <div class="intro-copy"><h1>订单财经计算工作台</h1><p>用一个真实可重放的订单场景，观察报价重算、版本冻结与财经审计链路。</p></div>
-      <div class="order-pill"><span>Demo Order</span><strong>ORD-1001 · PROD-1001</strong></div>
+      <div class="order-pill"><span>演示订单</span><strong>ORD-1001 · PROD-1001</strong></div>
     </section>
     <div class="layout">
-      <aside class="rail" aria-label="Demo workflow">
-        <h2>Workflow</h2>
-        <div class="step"><div class="step-no">01</div><div><strong>数据准备</strong><small>EDP projections</small></div></div>
-        <div class="step"><div class="step-no">02</div><div><strong>初次计算</strong><small>Calculation V1</small></div></div>
-        <div class="step"><div class="step-no">03</div><div><strong>价格重算</strong><small>Calculation V2</small></div></div>
-        <div class="step"><div class="step-no">04</div><div><strong>重放验证</strong><small>Idempotency</small></div></div>
+      <aside class="rail" aria-label="演示流程">
+        <h2>演示流程</h2>
+        <div class="step"><div class="step-no">01</div><div><strong>数据准备</strong><small>EDP 投影</small></div></div>
+        <div class="step"><div class="step-no">02</div><div><strong>初次计算</strong><small>计算版本 V1</small></div></div>
+        <div class="step"><div class="step-no">03</div><div><strong>价格重算</strong><small>计算版本 V2</small></div></div>
+        <div class="step"><div class="step-no">04</div><div><strong>重放验证</strong><small>幂等校验</small></div></div>
       </aside>
       <section class="content">
         <article class="panel">
-          <div class="panel-heading"><div><div class="eyebrow">Finance calculation</div><h2>计划成本结果</h2><p class="muted">所有金额来自 Demo API 的真实 OFA 计算结果。</p></div><div class="actions"><button class="button quiet" id="reset">初始化 Demo 数据</button><button class="button primary" id="calculate">运行初次计算</button><button class="button secondary" id="recalculate" disabled>价格修正并重算</button><button class="button quiet" id="replay" disabled>重放最近事件</button></div></div>
+          <div class="panel-heading"><div><div class="eyebrow">财经计算</div><h2>计划成本结果</h2><p class="muted">所有金额来自演示接口的真实 OFA 计算结果。</p></div><div class="actions"><button class="button quiet" id="reset">初始化演示数据</button><button class="button primary" id="calculate">运行初次计算</button><button class="button secondary" id="recalculate" disabled>价格修正并重算</button><button class="button quiet" id="replay" disabled>重放最近事件</button></div></div>
           <div class="status" id="status" role="status">等待初始化。建议按 01 → 02 → 03 → 04 操作。</div>
-          <div class="metrics"><div class="metric"><div class="metric-label">Material</div><div class="metric-value" id="material">—</div></div><div class="metric"><div class="metric-label">Labor</div><div class="metric-value" id="labor">—</div></div><div class="metric"><div class="metric-label">Expense</div><div class="metric-value" id="expense">—</div></div><div class="metric total"><div class="metric-label">Plan total</div><div class="metric-value" id="total">—</div></div></div>
+          <div class="metrics"><div class="metric"><div class="metric-label">材料成本</div><div class="metric-value" id="material">—</div></div><div class="metric"><div class="metric-label">人工成本</div><div class="metric-value" id="labor">—</div></div><div class="metric"><div class="metric-label">费用成本</div><div class="metric-value" id="expense">—</div></div><div class="metric total"><div class="metric-label">计划总额</div><div class="metric-value" id="total">—</div></div></div>
         </article>
         <div class="lower">
-          <article class="panel"><div class="eyebrow">Version history</div><h2>计算版本时间线</h2><div class="timeline" id="timeline"><div class="empty">尚未生成 V1 / V2 结果。</div></div></article>
-          <article class="panel"><div class="eyebrow">Audit trail</div><h2>审计与冻结输入</h2><div class="audit-grid" id="audit"><div class="empty">执行计算后显示 CalculationRun / CalculationSnapshot。</div></div><div class="refs" id="refs"></div></article>
+          <article class="panel"><div class="eyebrow">版本历史</div><h2>计算版本时间线</h2><div class="timeline" id="timeline"><div class="empty">尚未生成 V1 / V2 结果。</div></div></article>
+          <article class="panel"><div class="eyebrow">审计轨迹</div><h2>审计与冻结输入</h2><div class="audit-grid" id="audit"><div class="empty">执行计算后显示计算运行与计算快照。</div></div><div class="refs" id="refs"></div></article>
         </div>
-        <article class="panel"><div class="eyebrow">Event replay</div><h2>事件记录</h2><div class="events" id="events"><div class="empty">尚未记录 QuoteRecalculationRequired。</div></div></article>
+        <article class="panel"><div class="eyebrow">事件回放</div><h2>事件记录</h2><div class="events" id="events"><div class="empty">尚未记录报价重算事件。</div></div></article>
       </section>
     </div>
   </main>
@@ -152,20 +152,24 @@ def render_demo_page() -> str:
     const renderResult = (result) => { const values = result || {}; $("material").textContent = money(values.material_cost); $("labor").textContent = money(values.labor_cost); $("expense").textContent = money(values.expense_cost); $("total").textContent = money(values.total_cost); };
     const requestFromEvent = (event) => { if (!event) return null; const payload = event.payload || {}; return { order_id:payload.order_id || "ORD-1001", price_revision:Number(payload.price_revision || 1), event_id:event.event_id, idempotency_key:event.idempotency_key, trigger_type:event.event_type || "QuoteRecalculationRequired", reason:payload.reason || "Replay", actor:event.actor_id || "demo-user" }; };
     const appendAudit = (container, label, value) => { const item = node("div", "audit-item"); item.append(node("label", "", label), node("code", "", value || "—")); container.append(item); };
+    const statusText = (value) => ({DRAFT:"草稿", PENDING:"处理中", VERIFIED:"已验证", FAILED:"失败"}[value] || value || "未知");
+    const reasonText = (value) => ({"Initial quote":"初始报价", MaterialPriceRevision:"物料价格修订", Replay:"事件回放"}[value] || value || "—");
+    const eventTypeText = (value) => ({QuoteRecalculationRequired:"报价重算事件"}[value] || value || "未知事件");
+    const objectTypeText = (value) => ({BOM:"物料清单", Expense:"费用", Labor:"人工", MaterialPrice:"物料价格", Order:"订单"}[value] || value || "未知对象");
     const renderState = (state) => { const results = state.results || []; const calculations = state.calculations || []; const events = state.events || [];
       latestRequest = requestFromEvent(events[events.length - 1]); $("replay").disabled = !latestRequest; $("recalculate").disabled = !results.some((result) => result && result.version === 1);
       const completed = results.filter(Boolean); renderResult(completed[completed.length - 1] || null); clear($("timeline"));
-      if (!calculations.length) { $("timeline").append(node("div", "empty", "尚未生成 V1 / V2 结果。")); } else { calculations.forEach((calc, index) => { const result = results[index]; const version = node("div", "version"); const center = node("div", ""); center.append(node("strong", "", result ? result.status : "PENDING"), node("small", "", `${calc.trigger_type || "Calculation"} · ${calc.reason || "—"}`)); version.append(node("div", "version-no", `V${calc.version}`), center, node("div", "version-amount", result ? money(result.total_cost) : "Awaiting result")); $("timeline").append(version); }); }
-      clear($("audit")); const latest = calculations[calculations.length - 1]; if (latest) { appendAudit($("audit"), "Calculation ID", latest.calculation_id); appendAudit($("audit"), "Snapshot ID", latest.snapshot_id); appendAudit($("audit"), "Rule set", latest.rule_set_version); appendAudit($("audit"), "Checksum", latest.checksum); appendAudit($("audit"), "Actor", latest.actor); appendAudit($("audit"), "Trigger", latest.trigger_type); } else { $("audit").append(node("div", "empty", "执行计算后显示 CalculationRun 和 Snapshot。")); }
-      clear($("refs")); if (state.input_refs?.length) { $("refs").append(node("div", "eyebrow", "Frozen input refs")); state.input_refs.forEach((ref) => { const item = node("div", "ref"); item.append(node("strong", "", ref.object_type), document.createTextNode(` · ${ref.object_id} · rev ${ref.revision}`)); $("refs").append(item); }); }
-      clear($("events")); if (events.length) { events.forEach((event) => { const item = node("div", "event"); item.append(node("strong", "", `${event.event_type} · ${event.event_id}`), document.createElement("br"), node("span", "", event.idempotency_key)); $("events").append(item); }); } else { $("events").append(node("div", "empty", "尚未记录 QuoteRecalculationRequired。")); }
+      if (!calculations.length) { $("timeline").append(node("div", "empty", "尚未生成 V1 / V2 结果。")); } else { calculations.forEach((calc, index) => { const result = results[index]; const version = node("div", "version"); const center = node("div", ""); center.append(node("strong", "", statusText(result ? result.status : "PENDING")), node("small", "", `${eventTypeText(calc.trigger_type)} · ${reasonText(calc.reason)}`)); version.append(node("div", "version-no", `V${calc.version}`), center, node("div", "version-amount", result ? money(result.total_cost) : "等待结果")); $("timeline").append(version); }); }
+      clear($("audit")); const latest = calculations[calculations.length - 1]; if (latest) { appendAudit($("audit"), "计算编号", latest.calculation_id); appendAudit($("audit"), "快照编号", latest.snapshot_id); appendAudit($("audit"), "规则集", latest.rule_set_version); appendAudit($("audit"), "校验和", latest.checksum); appendAudit($("audit"), "操作人", latest.actor); appendAudit($("audit"), "触发事件", eventTypeText(latest.trigger_type)); } else { $("audit").append(node("div", "empty", "执行计算后显示计算运行与计算快照。")); }
+      clear($("refs")); if (state.input_refs?.length) { $("refs").append(node("div", "eyebrow", "冻结输入引用")); state.input_refs.forEach((ref) => { const item = node("div", "ref"); item.append(node("strong", "", objectTypeText(ref.object_type)), document.createTextNode(` · ${ref.object_id} · 修订版 ${ref.revision}`)); $("refs").append(item); }); }
+      clear($("events")); if (events.length) { events.forEach((event) => { const item = node("div", "event"); item.append(node("strong", "", `${eventTypeText(event.event_type)} · ${event.event_id}`), document.createElement("br"), node("span", "", `幂等键：${event.idempotency_key}`)); $("events").append(item); }); } else { $("events").append(node("div", "empty", "尚未记录报价重算事件。")); }
     };
-    const refresh = async () => { try { renderState(await api("/api/v1/demo/state")); } catch (error) { if (error.message === "Demo has not been initialized") setStatus("等待初始化。建议按 01 → 02 → 03 → 04 操作。"); else setStatus(error.message, "error"); } };
+    const refresh = async () => { try { renderState(await api("/api/v1/demo/state")); } catch (error) { if (error.message === "Demo has not been initialized") setStatus("等待初始化。建议按 01 → 02 → 03 → 04 操作。"); else setStatus("加载失败：" + error.message, "error"); } };
     const showResultStatus = (label, result) => { if (result.status !== "DRAFT") { setStatus(`${label} 已阻断 · ${result.errors.map((item) => item.code).join(", ")}`, "error"); return; } setStatus(`${label} 已生成 · 总成本 ${money(result.total_cost)}`, "success"); };
-    $("reset").onclick = async () => { try { await api("/api/v1/demo/reset", {method:"POST"}); latestRequest = null; setStatus("Demo 数据已初始化，可以运行初次计算。", "success"); renderResult(null); await refresh(); } catch (error) { setStatus(error.message, "error"); } };
-    $("calculate").onclick = async () => { try { latestRequest = requestFor(1); const result = await api("/api/v1/demo/events/quote-recalculation", {method:"POST", body:JSON.stringify(latestRequest)}); renderResult(result.result); showResultStatus("V1", result.result); await refresh(); } catch (error) { setStatus(error.message, "error"); } };
-    $("recalculate").onclick = async () => { try { latestRequest = requestFor(2); const result = await api("/api/v1/demo/events/quote-recalculation", {method:"POST", body:JSON.stringify(latestRequest)}); renderResult(result.result); showResultStatus(`V${result.result.version}`, result.result); await refresh(); } catch (error) { setStatus(error.message, "error"); } };
-    $("replay").onclick = async () => { try { if (!latestRequest) { setStatus("没有可重放的事件。", "error"); return; } const result = await api("/api/v1/demo/replay", {method:"POST", body:JSON.stringify(latestRequest)}); setStatus(result.replayed ? `Replay accepted · ${result.result.result_id} 未重复生成` : "事件已处理", "success"); await refresh(); } catch (error) { setStatus(error.message, "error"); } };
+    $("reset").onclick = async () => { try { await api("/api/v1/demo/reset", {method:"POST"}); latestRequest = null; setStatus("演示数据已初始化，可以运行初次计算。", "success"); renderResult(null); await refresh(); } catch (error) { setStatus("初始化失败：" + error.message, "error"); } };
+    $("calculate").onclick = async () => { try { latestRequest = requestFor(1); const result = await api("/api/v1/demo/events/quote-recalculation", {method:"POST", body:JSON.stringify(latestRequest)}); renderResult(result.result); showResultStatus("V1", result.result); await refresh(); } catch (error) { setStatus("计算失败：" + error.message, "error"); } };
+    $("recalculate").onclick = async () => { try { latestRequest = requestFor(2); const result = await api("/api/v1/demo/events/quote-recalculation", {method:"POST", body:JSON.stringify(latestRequest)}); renderResult(result.result); showResultStatus(`V${result.result.version}`, result.result); await refresh(); } catch (error) { setStatus("重算失败：" + error.message, "error"); } };
+    $("replay").onclick = async () => { try { if (!latestRequest) { setStatus("没有可重放的事件。", "error"); return; } const result = await api("/api/v1/demo/replay", {method:"POST", body:JSON.stringify(latestRequest)}); setStatus(result.replayed ? `回放已接受 · ${result.result.result_id} 未重复生成财经事实` : "事件已处理", "success"); await refresh(); } catch (error) { setStatus("回放失败：" + error.message, "error"); } };
     void refresh();
   </script>
 </body>
