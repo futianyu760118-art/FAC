@@ -2,6 +2,8 @@ import importlib
 
 from fastapi.testclient import TestClient
 
+from fac.infrastructure.db import make_engine, make_session_factory
+from fac.infrastructure.models import Base
 from fac.main import create_app
 
 
@@ -37,3 +39,43 @@ def test_demo_trigger_contract_contains_version_and_audit_fields():
     assert request.trigger_type == "QuoteRecalculationRequired"
     assert request.reason == "MaterialPriceRevision"
     assert request.actor == "demo-user"
+
+
+def test_demo_api_runs_calculation_recalculation_and_replay(tmp_path, monkeypatch):
+    monkeypatch.setenv("FAC_DEMO_ENABLED", "true")
+    engine = make_engine(f"sqlite:///{tmp_path / 'api.db'}")
+    Base.metadata.create_all(engine)
+    client = TestClient(create_app(make_session_factory(engine)))
+
+    reset = client.post("/api/v1/demo/reset")
+    assert reset.status_code == 200
+    assert len(reset.json()["seeded_refs"]) == 6
+
+    body = {
+        "order_id": "ORD-1001",
+        "price_revision": 1,
+        "event_id": "demo-event-v1",
+        "idempotency_key": "demo-key-v1",
+        "trigger_type": "QuoteRecalculationRequired",
+        "reason": "Initial quote",
+        "actor": "demo-user",
+    }
+    first = client.post("/api/v1/demo/events/quote-recalculation", json=body)
+    assert first.status_code == 200
+    assert first.json()["result"]["total_cost"]["functional_amount"] == "46.00"
+
+    second_body = {**body, "price_revision": 2, "event_id": "demo-event-v2", "idempotency_key": "demo-key-v2", "reason": "MaterialPriceRevision"}
+    second = client.post("/api/v1/demo/events/quote-recalculation", json=second_body)
+    assert second.status_code == 200
+    assert second.json()["result"]["total_cost"]["functional_amount"] == "52.00"
+    assert second.json()["result"]["previous_result_id"] == first.json()["result"]["result_id"]
+
+    replay = client.post("/api/v1/demo/replay", json=second_body)
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert replay.json()["result"]["result_id"] == second.json()["result"]["result_id"]
+
+    state = client.get("/api/v1/demo/state")
+    assert state.status_code == 200
+    assert len(state.json()["calculations"]) == 2
+    assert len(state.json()["results"]) == 2
