@@ -27,6 +27,9 @@ class FacCalculationRequest(BaseModel):
     input_refs: tuple[ObjectRef, ...] = Field(min_length=1)
     actor: str = Field(min_length=1)
     idempotency_key: str = Field(min_length=1)
+    event_id: str | None = Field(default=None, min_length=1)
+    trigger_type: str = Field(default="FinanceCalculationRequested", min_length=1)
+    reason: str = Field(default="正式 FAC 订单财经计算", min_length=1)
 
 
 class FinanceRuleResponse(BaseModel):

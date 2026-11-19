@@ -19,7 +19,7 @@ from fac.contracts.demo import (
     DemoTriggerResponse,
     DemoVerifyState,
 )
-from fac.contracts.events import EventEnvelope
+from fac.contracts.fac import FacCalculationRequest
 from fac.contracts.ofa import CalculationResponse, PlanCostResponse
 from fac.infrastructure.models import (
     CalculationResult,
@@ -31,8 +31,8 @@ from fac.infrastructure.models import (
 )
 from fac.infrastructure.repositories import CoreRepository, EdpRepository
 from fac.modules.calculation.service import CalculationService
+from fac.modules.fac.service import FacService
 from fac.modules.ofa.engine import OFAEngine
-from fac.modules.ofa.ports import EdpOFAPorts
 
 DEMO_TENANT_ID = "demo-tenant"
 DEMO_SOURCE_SYSTEM = "demo-edp"
@@ -66,46 +66,34 @@ class DemoService:
         if request.order_id != DEMO_ORDER_ID:
             raise ValueError(f"unknown Demo order: {request.order_id}")
         refs = self._refs_for_price(request.price_revision)
-        event = EventEnvelope(
-            event_id=request.event_id,
-            event_type=request.trigger_type,
-            version=1,
-            object_ref=refs[0],
-            source_system="fac-demo",
-            occurred_at=DEMO_OCCURRED_AT,
-            actor_id=request.actor,
-            correlation_id=f"demo-correlation-{request.event_id}",
-            causation_id=f"demo-causation-{request.event_id}",
-            trace_id=f"demo-trace-{request.event_id}",
-            payload_version=1,
-            payload={
-                "order_id": request.order_id,
-                "price_revision": request.price_revision,
-                "reason": request.reason,
-            },
-            evidence_refs=[],
-            idempotency_key=request.idempotency_key,
+        existing_event = CoreRepository(self.session).get_event_by_id(
+            DEMO_TENANT_ID, request.event_id
         )
-        inserted = CoreRepository(self.session).add_event(DEMO_TENANT_ID, event)
-        context = CalculationService(self.session, DEMO_TENANT_ID).start(
-            "Order",
-            DEMO_ORDER_ID,
-            refs,
-            "v1",
-            request.trigger_type,
-            request.reason,
-            request.actor,
+        result = FacService(self.session, DEMO_TENANT_ID).calculate_order(
+            FacCalculationRequest(
+                tenant_id=DEMO_TENANT_ID,
+                order_id=request.order_id,
+                period_id="2026-11",
+                rule_id="OFA_PLAN_COST",
+                rule_version="v1",
+                input_refs=tuple(refs),
+                actor=request.actor,
+                idempotency_key=request.idempotency_key,
+                event_id=request.event_id,
+                trigger_type=request.trigger_type,
+                reason=request.reason,
+            )
         )
-        ports = EdpOFAPorts(self.session, DEMO_TENANT_ID)
-        result = OFAEngine(self.session).calculate_plan_cost(
-            ports.get_order(refs[0], context), ports, context
+        context = CalculationService(self.session, DEMO_TENANT_ID).get(
+            "Order", DEMO_ORDER_ID, result.version
         )
-        self.session.commit()
+        if context is None:
+            raise RuntimeError("formal FAC calculation context was not persisted")
         return DemoTriggerResponse(
-            replayed=not inserted,
+            replayed=existing_event is not None,
             event_id=request.event_id,
             calculation=CalculationResponse.from_context(context),
-            result=PlanCostResponse.from_result(result),
+            result=result,
         )
 
     def replay(self, request: DemoTriggerRequest) -> DemoTriggerResponse:
@@ -114,7 +102,32 @@ class DemoService:
             raise LookupError(f"Demo event not found: {request.event_id}")
         if event.idempotency_key != request.idempotency_key:
             raise ValueError("Demo replay identity does not match the stored event")
-        return self.trigger(request)
+        result = FacService(self.session, DEMO_TENANT_ID).replay(
+            FacCalculationRequest(
+                tenant_id=DEMO_TENANT_ID,
+                order_id=request.order_id,
+                period_id="2026-11",
+                rule_id="OFA_PLAN_COST",
+                rule_version="v1",
+                input_refs=tuple(self._refs_for_price(request.price_revision)),
+                actor=request.actor,
+                idempotency_key=request.idempotency_key,
+                event_id=request.event_id,
+                trigger_type=request.trigger_type,
+                reason=request.reason,
+            )
+        )
+        context = CalculationService(self.session, DEMO_TENANT_ID).get(
+            "Order", DEMO_ORDER_ID, result.version
+        )
+        if context is None:
+            raise RuntimeError("formal FAC replay context was not persisted")
+        return DemoTriggerResponse(
+            replayed=True,
+            event_id=request.event_id,
+            calculation=CalculationResponse.from_context(context),
+            result=result,
+        )
 
     def state(self) -> DemoStateResponse:
         calculation_service = CalculationService(self.session, DEMO_TENANT_ID)
