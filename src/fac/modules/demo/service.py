@@ -127,7 +127,9 @@ class DemoService:
                 .order_by(EventRecord.id)
             ).all()
         )
-        latest_refs = contexts[-1].input_refs if contexts else ()
+        latest_refs = (
+            contexts[-1].input_refs if contexts else tuple(self._seeded_refs())
+        )
         return DemoStateResponse(
             tenant_id=DEMO_TENANT_ID,
             input_refs=latest_refs,
@@ -137,8 +139,8 @@ class DemoService:
         )
 
     @staticmethod
-    def _seed(repository: EdpRepository) -> list[ObjectRef]:
-        refs = [
+    def _seeded_refs() -> list[ObjectRef]:
+        return [
             ObjectRef("Order", DEMO_ORDER_ID, DEMO_SOURCE_SYSTEM, 1),
             ObjectRef("BOM", "BOM-1001", DEMO_SOURCE_SYSTEM, 1),
             ObjectRef("MaterialPrice", "PRICE-1001", DEMO_SOURCE_SYSTEM, 1),
@@ -146,6 +148,10 @@ class DemoService:
             ObjectRef("Labor", "LABOR-1001", DEMO_SOURCE_SYSTEM, 1),
             ObjectRef("Expense", "EXPENSE-1001", DEMO_SOURCE_SYSTEM, 1),
         ]
+
+    @staticmethod
+    def _seed(repository: EdpRepository) -> list[ObjectRef]:
+        refs = DemoService._seeded_refs()
         payloads = [
             {
                 "object_id": DEMO_ORDER_ID,

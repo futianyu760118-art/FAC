@@ -50,6 +50,9 @@ def test_demo_api_runs_calculation_recalculation_and_replay(tmp_path, monkeypatc
     reset = client.post("/api/v1/demo/reset")
     assert reset.status_code == 200
     assert len(reset.json()["seeded_refs"]) == 6
+    seeded_state = client.get("/api/v1/demo/state")
+    assert seeded_state.status_code == 200
+    assert len(seeded_state.json()["input_refs"]) == 6
 
     body = {
         "order_id": "ORD-1001",
@@ -63,6 +66,9 @@ def test_demo_api_runs_calculation_recalculation_and_replay(tmp_path, monkeypatc
     first = client.post("/api/v1/demo/events/quote-recalculation", json=body)
     assert first.status_code == 200
     assert first.json()["result"]["total_cost"]["functional_amount"] == "46.00"
+    assert first.json()["calculation"]["trigger_type"] == "QuoteRecalculationRequired"
+    assert first.json()["calculation"]["reason"] == "Initial quote"
+    assert first.json()["calculation"]["actor"] == "demo-user"
 
     second_body = {**body, "price_revision": 2, "event_id": "demo-event-v2", "idempotency_key": "demo-key-v2", "reason": "MaterialPriceRevision"}
     second = client.post("/api/v1/demo/events/quote-recalculation", json=second_body)
