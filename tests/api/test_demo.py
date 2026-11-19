@@ -28,13 +28,16 @@ def test_full_fac_workbench_is_exposed_when_demo_is_enabled(monkeypatch):
     assert response.status_code == 200
     for text in (
         "FAC 财经自治中心",
-        "真实系统联调主干",
+        "订单财经分析主干",
         "M02 EDP",
         "M13 智能体",
         "M01 防护",
         "M10 POMS",
         "事件台账",
-        "运行联调演示",
+        "计算订单",
+        "订单财经分析",
+        "结果与证据",
+        "待外部处理",
     ):
         assert text in response.text
     for hook in (
@@ -44,7 +47,6 @@ def test_full_fac_workbench_is_exposed_when_demo_is_enabled(monkeypatch):
         "decision-case-list",
         "poms-action-list",
         "verify-summary",
-        "M13 Registry 沙箱",
         "Value Ledger",
     ):
         assert hook in response.text

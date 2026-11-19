@@ -1,9 +1,9 @@
-"""AEOS-style integrated FAC workbench for the local demo."""
+"""AEOS-style integrated FAC workbench for the formal product entry point."""
 
 
 def render_fac_page() -> str:
-    """Return the integrated M09 FAC console used by the browser demo."""
-    return r'''<!doctype html>
+    """Return the formal M09 FAC workbench while preserving the original layout."""
+    html = r'''<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -106,7 +106,7 @@ def render_fac_page() -> str:
     const setPane = (name) => { qsa(".nav button").forEach((button) => { const active = button.dataset.pane === name; button.classList.toggle("active", active); if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current"); }); qsa(".pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.panePanel === name)); window.scrollTo({top:0, behavior:"smooth"}); };
     qsa(".nav button").forEach((button) => button.addEventListener("click", () => setPane(button.dataset.pane))); qsa("[data-pane-link]").forEach((button) => button.addEventListener("click", () => setPane(button.dataset.paneLink)));
     qsa("[data-action='refresh']").forEach((button) => button.addEventListener("click", () => toast("投影、事件与证据状态已刷新"))); qsa("[data-action='action']").forEach((button) => button.addEventListener("click", () => { button.textContent = "已创建动作"; toast("POMS 动作已创建，等待执行反馈"); }));
-    const statusLabels = {WAITING:"待运行", READY:"可调度", COMPLETED:"已完成", APPROVED:"已批准", BLOCKED:"已阻断", GUARDED:"受保护", VERIFIED:"已验证", CONSUMED:"已消费", PROCESSED:"已处理", ACKED:"已确认", REVIEW:"待复核", PENDING:"待决策", ALLOW:"允许", DENY:"拒绝"};
+    const statusLabels = {WAITING:"待运行", WAITING_EXTERNAL:"待外部处理", WAITING_EVIDENCE:"待验证", READY:"可调度", COMPLETED:"已完成", APPROVED:"已批准", BLOCKED:"已阻断", GUARDED:"受保护", VERIFIED:"已验证", CONSUMED:"已消费", PROCESSED:"已处理", ACKED:"已确认", REVIEW:"待复核", PENDING:"待决策", ALLOW:"允许", DENY:"拒绝"};
     const statusClass = (status) => ["COMPLETED","APPROVED","VERIFIED","CONSUMED","PROCESSED","ACKED"].includes(status) ? "good" : ["BLOCKED","DENY","GUARDED"].includes(status) ? "bad" : ["READY","WAITING","REVIEW","PENDING"].includes(status) ? "warn" : "blue";
     const statusText = (status) => statusLabels[status] || status;
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (character) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;", "'":"&#39;"}[character]));
@@ -139,3 +139,145 @@ def render_fac_page() -> str:
   </script>
 </body>
 </html>'''
+    replacements = {
+        "本地联调沙箱": "正式运行环境",
+        "租户：demo-tenant": "租户：当前租户",
+        "M09 · 联调控制台": "M09 · 财经工作台",
+        "财经结果": "结果与证据",
+        "M09 工作台": "规则与期间 · M09 工作台",
+        "运行联调演示": "计算订单",
+        "重放最近事件": "刷新状态",
+        "真实系统联调主干": "订单财经分析主干",
+        "关联编号：FAC-DEMO-2025-01": "订单范围：当前租户",
+        "FAC-DEMO-2025-01": "当前租户订单",
+        "完整联调投影": "正式业务状态",
+        "本地沙箱": "待接入",
+        "运行示例链路": "计算订单",
+        "运行 OFA 计算": "计算订单",
+        "中文演示数据": "正式业务状态",
+        "M13 Registry 沙箱": "M13 智能体注册",
+        "2,418": "待接入",
+        "4 / 5": "待接入",
+        "12</strong><small>进行中动作": "待接入</strong><small>进行中动作",
+        "100%</strong><small>高风险动作必须审批": "待验证</strong><small>高风险动作必须审批",
+        "/demo/fac": "/fac",
+        "/api/v1/demo/": "/api/v1/fac/",
+        "demo-event-v1": "event-v1",
+        "demo-margin-risk-v2": "margin-risk-v1",
+        "demo-key-v1": "event-key-v1",
+        "demo-event-v2": "event-v2",
+        "demo-key-v2": "event-key-v2",
+        "demo-user": "fac-user",
+        "已验证链路": "待验证",
+        "证据覆盖率</label><strong>100%</strong>": "证据覆盖率</label><strong>待验证</strong>",
+        "100% 可追溯": "待验证",
+        "46.00 CNY": "待计算",
+        "52.00 CNY": "待计算",
+        "计算快照已冻结": "需先计算订单",
+        "物料价格修订版 2": "等待 EDP 价格输入",
+        "Value Ledger：待生成": "价值台账：待生成",
+    }
+    for old, new in replacements.items():
+        html = html.replace(old, new)
+    formal_script = r'''
+  <script>
+    const formalApi = async (path, options = {}) => {
+      const response = await fetch(path, {headers:{"Content-Type":"application/json"}, ...options});
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+      return payload;
+    };
+    const replaceHandler = (selector, handler) => {
+      const current = document.querySelector(selector);
+      if (!current) return;
+      const button = current.cloneNode(true);
+      current.replaceWith(button);
+      button.addEventListener("click", handler);
+    };
+    const formalState = {orders:[], rules:[], periods:[], events:[], externalRequests:[]};
+    const setFormalWaiting = (message = "待接入 EDP 业务对象") => {
+      const state = document.querySelector("#run-state");
+      if (state) state.textContent = "A0 · 待接入";
+      const trace = document.querySelector("#trace-badge");
+      if (trace) trace.textContent = "待接入";
+      const evidence = document.querySelector("#integration-evidence");
+      if (evidence) evidence.textContent = "证据覆盖率 0% · 待外部处理";
+      ["trace-1", "trace-2", "trace-3", "trace-4"].forEach((id) => {
+        const node = document.querySelector(`#${id}`);
+        if (node) node.textContent = message;
+      });
+    };
+    const renderFormalCollections = () => {
+      const order = formalState.orders[0];
+      const correlation = document.querySelector("#integration-correlation");
+      if (correlation) correlation.textContent = order ? order.order_id : "待接入订单";
+      const eventList = document.querySelector("#integration-event-list");
+      if (eventList) {
+        eventList.innerHTML = formalState.events.length ? formalState.events.map((event) => `<tr><td><code>${escapeHtml(event.event_id)}</code></td><td>${escapeHtml(event.event_type || "财经计算事件")}</td><td>${escapeHtml(event.source_system)}</td><td>M09 FAC</td><td><code>${escapeHtml(event.object_id)}</code></td><td><code>${escapeHtml(event.idempotency_key)}</code></td><td><span class="badge warn">已记录</span></td></tr>`).join("") : `<tr><td colspan="7"><span class="badge warn">待接入事件</span></td></tr>`;
+      }
+      const summaryLedger = document.querySelector(".dashboard-grid table tbody");
+      if (summaryLedger) summaryLedger.innerHTML = formalState.events.length ? formalState.events.slice(-3).map((event) => `<tr><td><code>${escapeHtml(event.event_id)}</code></td><td>${escapeHtml(event.source_system)}</td><td>M09 FAC</td><td><code>${escapeHtml(event.object_id)}</code></td><td><span class="badge warn">已记录</span></td></tr>`).join("") : `<tr><td colspan="5"><span class="badge warn">待接入事件</span></td></tr>`;
+      const signalValues = document.querySelectorAll(".signal strong");
+      if (signalValues.length >= 4) {
+        signalValues[0].textContent = formalState.orders.length ? String(formalState.orders.length) : "待接入";
+        signalValues[1].textContent = "待接入";
+        signalValues[2].textContent = "待验证";
+        signalValues[3].textContent = "待接入";
+      }
+      const stageList = document.querySelector("#integration-stage-list");
+      if (stageList) stageList.innerHTML = `<div class="projection-row"><div><strong>M02 EDP · 订单对象</strong><small>${order ? "已接入当前租户订单" : "等待外部系统提供订单对象"}</small></div><div class="right"><span class="badge ${order ? "good" : "warn"}">${order ? "已接入" : "待接入"}</span></div></div><div class="projection-row"><div><strong>M09 FAC · 订单财经计算</strong><small>规则与期间冻结后生成版本化财经结果</small></div><div class="right"><span class="badge warn">待计算</span></div></div><div class="projection-row"><div><strong>外部系统回写</strong><small>${formalState.externalRequests.length ? "存在外部处理请求" : "暂无外部回写请求"}</small></div><div class="right"><span class="badge warn">待外部处理</span></div></div>`;
+      const agents = document.querySelector("#agent-registry-list");
+      if (agents) agents.innerHTML = `<div class="projection-row"><div><strong>M13 智能体注册</strong><small>接口已预留，等待注册中心接入</small></div><div class="right"><span class="badge warn">待接入</span></div></div>`;
+      const decisions = document.querySelector("#decision-case-list");
+      if (decisions) decisions.innerHTML = `<div class="projection-row"><div><strong>M01 决策案例</strong><small>财经结果生成后进入人工复核</small></div><div class="right"><span class="badge warn">待生成</span></div></div>`;
+      const actions = document.querySelector("#poms-action-list");
+      if (actions) actions.innerHTML = `<div class="projection-row"><div><strong>M10 POMS 动作</strong><small>外部动作接口已预留</small></div><div class="right"><span class="badge warn">待外部处理</span></div></div>`;
+      setFormalWaiting();
+    };
+    const loadFormalState = async () => {
+      try {
+        const [orders, rules, periods, events, externalRequests] = await Promise.all([
+          formalApi("/api/v1/fac/orders"),
+          formalApi("/api/v1/fac/rules"),
+          formalApi("/api/v1/fac/periods"),
+          formalApi("/api/v1/fac/events"),
+          formalApi("/api/v1/fac/external-requests"),
+        ]);
+        Object.assign(formalState, {orders, rules, periods, events, externalRequests});
+        renderFormalCollections();
+      } catch (error) {
+        setFormalWaiting(`正式数据加载失败：${error.message}`);
+        toast(`正式数据加载失败：${error.message}`);
+      }
+    };
+    const calculateFormalOrder = async () => {
+      const order = formalState.orders[0];
+      if (!order) { setFormalWaiting("暂无 EDP 订单，当前状态：待接入"); toast("暂无可计算订单：请先接入 M02 EDP"); return; }
+      const refs = [{object_type:"Order", object_id:order.order_id, source_system:order.source_system, revision:order.revision}];
+      const body = {tenant_id:order.tenant_id, order_id:order.order_id, period_id:formalState.periods[0]?.period_id || "未配置期间", rule_id:formalState.rules[0]?.rule_id || "OFA_PLAN_COST", rule_version:formalState.rules[0]?.version || "v1", input_refs:refs, actor:"fac-user", idempotency_key:`fac-ui-${order.order_id}-${Date.now()}`, reason:"正式工作台订单财经计算"};
+      try {
+        const button = document.querySelector("#run"); if (button) { button.disabled = true; button.textContent = "计算中…"; }
+        const result = await formalApi(`/api/v1/fac/orders/${encodeURIComponent(order.order_id)}/calculations`, {method:"POST", body:JSON.stringify(body)});
+        document.querySelector("#run-state").textContent = `A1 · 结果 V${result.result.version}`;
+        document.querySelector("#trace-badge").textContent = "已生成";
+        document.querySelector("#trace-2").textContent = `财经结果 V${result.result.version} 已生成，等待证据验证`;
+        document.querySelector("#ledger-status").textContent = "已生成";
+        document.querySelector("#ledger-status").className = "badge warn";
+        toast("订单财经结果已生成，证据状态仍需核验");
+        await loadFormalState();
+      } catch (error) { toast(`订单计算失败：${error.message}`); }
+      finally { const button = document.querySelector("#run"); if (button) { button.disabled = false; button.textContent = "计算订单"; } }
+    };
+    const showFormalEvidence = async () => {
+      const result = document.querySelector("#result-id")?.textContent?.trim();
+      if (!result || result === "待生成") { toast("暂无财经结果，先计算订单"); return; }
+      try { const evidence = await formalApi(`/api/v1/fac/results/${encodeURIComponent(result)}/evidence`); toast(`证据状态：${evidence.status} · 覆盖率 ${evidence.evidence_coverage}%`); } catch (error) { toast(`证据查询失败：${error.message}`); }
+    };
+    replaceHandler("#run", calculateFormalOrder);
+    replaceHandler("#run-events", loadFormalState);
+    replaceHandler("#run-results", calculateFormalOrder);
+    replaceHandler("#replay", loadFormalState);
+    loadFormalState();
+  </script>
+'''
+    return html.replace("</body>", formal_script + "</body>")

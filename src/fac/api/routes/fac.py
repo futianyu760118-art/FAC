@@ -43,6 +43,113 @@ def fac_overview() -> dict[str, object]:
     }
 
 
+@router.get("/api/v1/fac/integration")
+def fac_workbench_projection(
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> dict[str, object]:
+    """Return a formal workbench projection without claiming external completion."""
+    tenant = _tenant(tenant_id)
+    orders = session.scalars(
+        select(EdpProjection).where(
+            EdpProjection.tenant_id == tenant,
+            EdpProjection.object_type == "Order",
+        )
+    ).all()
+    events = session.scalars(
+        select(EventRecord)
+        .where(EventRecord.tenant_id == tenant)
+        .order_by(EventRecord.id)
+    ).all()
+    external_requests = session.scalars(
+        select(ExternalRequest)
+        .where(ExternalRequest.tenant_id == tenant)
+        .order_by(ExternalRequest.id)
+    ).all()
+    order_status = "READY" if orders else "WAITING_EXTERNAL"
+    return {
+        "mode": "FORMAL",
+        "correlation_id": orders[0].object_id if orders else "待接入订单",
+        "idempotency_enabled": True,
+        "verify": {
+            "status": "WAITING_EVIDENCE",
+            "evidence_coverage": 0,
+            "value_ledger_id": "待生成",
+            "roi_value": "待验证",
+        },
+        "ebms_status": "WAITING_EXTERNAL",
+        "stages": [
+            {
+                "module": "M02 EDP",
+                "name": "订单对象",
+                "mode": "FORMAL",
+                "input_refs": [row.object_id for row in orders],
+                "output_refs": [],
+                "status": order_status,
+            },
+            {
+                "module": "M09 FAC",
+                "name": "订单财经计算",
+                "mode": "FORMAL",
+                "input_refs": [row.object_id for row in orders],
+                "output_refs": [],
+                "status": "WAITING",
+            },
+            {
+                "module": "M13 Agent",
+                "name": "智能体建议",
+                "mode": "INTERFACE_READY",
+                "input_refs": [],
+                "output_refs": [],
+                "status": "WAITING_EXTERNAL",
+            },
+            {
+                "module": "M01 Guard",
+                "name": "策略决策",
+                "mode": "INTERFACE_READY",
+                "input_refs": [],
+                "output_refs": [],
+                "status": "WAITING",
+            },
+            {
+                "module": "M10 POMS",
+                "name": "动作下发",
+                "mode": "INTERFACE_READY",
+                "input_refs": [],
+                "output_refs": [],
+                "status": "WAITING_EXTERNAL",
+            },
+            {
+                "module": "FAC Verify",
+                "name": "证据验证",
+                "mode": "FORMAL",
+                "input_refs": [],
+                "output_refs": [],
+                "status": "WAITING_EVIDENCE",
+            },
+        ],
+        "event_ledger": [
+            {
+                "event_id": row.event_id,
+                "event_type": row.payload.get("event_type", "FinanceCalculationRequested"),
+                "source": row.source_system,
+                "target": "M09 FAC",
+                "correlation_id": row.object_id,
+                "idempotency_key": row.idempotency_key,
+                "status": "ACKED",
+            }
+            for row in events
+        ],
+        "agents": [],
+        "decision_cases": [],
+        "actions": [],
+        "external_requests": [
+            {"target_system": row.target_system, "status": row.status}
+            for row in external_requests
+        ],
+    }
+
+
 def _tenant(value: str | None) -> str:
     tenant_id = value or get_settings().tenant_id
     if not tenant_id.strip():
