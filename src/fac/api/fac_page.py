@@ -182,6 +182,8 @@ def render_fac_page() -> str:
         "订单毛利结果 V2 验证完成，证据覆盖率 100%。": "结果生成后执行证据验证，当前待验证。",
         "ORD-1001 V2 绑定 BOM-1001、PRICE-1001 修订版 2、规则 v1。": "结果生成后展示冻结引用与证据状态。",
         "打开 OFA 明细": "查看结果明细",
+        "创建示例动作": "查看待外部处理",
+        "POMS 动作已创建，等待执行反馈": "暂无外部处理请求，当前状态：待外部处理",
     }
     for old, new in replacements.items():
         html = html.replace(old, new)
@@ -307,6 +309,22 @@ def render_fac_page() -> str:
     replaceHandler("#run-events", loadFormalState);
     replaceHandler("#run-results", calculateFormalOrder);
     replaceHandler("#replay", loadFormalState);
+    document.querySelectorAll("[data-action=\"action\"]").forEach((current) => {
+      const button = current.cloneNode(true);
+      current.replaceWith(button);
+      button.addEventListener("click", async () => {
+        try {
+          const requests = await formalApi("/api/v1/fac/external-requests");
+          document.querySelector("[data-pane=\"actions\"]")?.click();
+          toast(requests.length ? `待外部处理：${requests.length} 条` : "暂无外部处理请求，当前状态：待外部处理");
+        } catch (error) { toast(`外部处理状态查询失败：${error.message}`); }
+      });
+    });
+    document.querySelectorAll("[data-action=\"refresh\"]").forEach((current) => {
+      const button = current.cloneNode(true);
+      current.replaceWith(button);
+      button.addEventListener("click", loadFormalState);
+    });
     loadFormalState();
   </script>
 '''

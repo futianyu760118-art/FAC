@@ -37,6 +37,10 @@ class BOMLine(BaseModel):
     material_id: str = Field(min_length=1)
     quantity: Decimal = Field(gt=0)
     uom: str = Field(min_length=1)
+    kind: str = Field(default="MATERIAL", pattern="^(MATERIAL|SELF_MADE|OUTSOURCE)$")
+    conversion_factor: Decimal = Field(default=Decimal(1), gt=0)
+    price_uom: str | None = None
+    processing_price: MoneyInput | None = None
 
 
 class BOM(SourceObject):
@@ -48,6 +52,9 @@ class MaterialPrice(SourceObject):
     material_id: str = Field(min_length=1)
     unit_price: MoneyInput
     effective_at: date
+    uom: str = ""
+    override: bool = False
+    fallback: bool = False
 
 
 class Labor(SourceObject):

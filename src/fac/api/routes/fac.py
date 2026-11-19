@@ -15,6 +15,7 @@ from fac.infrastructure.models import (
     CalculationRun,
     EdpProjection,
     EventRecord,
+    Evidence,
     ExternalRequest,
     FinancePeriod,
     FinanceRule,
@@ -66,16 +67,34 @@ def fac_workbench_projection(
         .where(ExternalRequest.tenant_id == tenant)
         .order_by(ExternalRequest.id)
     ).all()
+    results = session.scalars(
+        select(CalculationResult)
+        .where(CalculationResult.tenant_id == tenant)
+        .order_by(CalculationResult.id)
+    ).all()
+    latest_result = results[-1] if results else None
+    result_evidence_refs = tuple(latest_result.payload.get("evidence_refs", ())) if latest_result else ()
+    result_evidence = {
+        row.object_id
+        for row in session.scalars(
+            select(Evidence).where(
+                Evidence.tenant_id == tenant,
+                Evidence.object_id.in_(result_evidence_refs),
+            )
+        ).all()
+    }
+    evidence_verified = bool(result_evidence_refs) and set(result_evidence_refs) <= result_evidence
     order_status = "READY" if orders else "WAITING_EXTERNAL"
+    fac_status = "WAITING_EVIDENCE" if latest_result else ("WAITING" if orders else "WAITING_EXTERNAL")
     return {
         "mode": "FORMAL",
         "correlation_id": orders[0].object_id if orders else "待接入订单",
         "idempotency_enabled": True,
         "verify": {
-            "status": "WAITING_EVIDENCE",
-            "evidence_coverage": 0,
-            "value_ledger_id": "待生成",
-            "roi_value": "待验证",
+            "status": "VERIFIED" if evidence_verified else "WAITING_EVIDENCE",
+            "evidence_coverage": 100 if evidence_verified else 0,
+            "value_ledger_id": latest_result.object_id if evidence_verified else "待生成",
+            "roi_value": "待验证" if not evidence_verified else "待接入 EBMS",
         },
         "ebms_status": "WAITING_EXTERNAL",
         "stages": [
@@ -92,8 +111,8 @@ def fac_workbench_projection(
                 "name": "订单财经计算",
                 "mode": "FORMAL",
                 "input_refs": [row.object_id for row in orders],
-                "output_refs": [],
-                "status": "WAITING",
+                "output_refs": [latest_result.object_id] if latest_result else [],
+                "status": fac_status,
             },
             {
                 "module": "M13 Agent",
@@ -370,9 +389,10 @@ def get_result_evidence(
     session: Annotated[Session, Depends(get_session)],
     tenant_id: str | None = Query(default=None),
 ) -> dict[str, object]:
+    tenant = _tenant(tenant_id)
     row = session.scalar(
         select(CalculationResult).where(
-            CalculationResult.tenant_id == _tenant(tenant_id),
+            CalculationResult.tenant_id == tenant,
             CalculationResult.object_id == result_id,
             CalculationResult.source_system == "fac",
         )
@@ -380,9 +400,17 @@ def get_result_evidence(
     if row is None:
         raise HTTPException(status_code=404, detail="finance result not found")
     evidence_refs = tuple(row.payload.get("evidence_refs", ()))
+    evidence_rows = session.scalars(
+        select(Evidence).where(
+            Evidence.tenant_id == tenant,
+            Evidence.object_id.in_(evidence_refs),
+        )
+    ).all()
+    evidence_ids = {item.object_id for item in evidence_rows}
+    evidence_verified = bool(evidence_refs) and set(evidence_refs) <= evidence_ids
     return {
         "result_id": result_id,
         "evidence_refs": evidence_refs,
-        "evidence_coverage": 100 if evidence_refs else 0,
-        "status": "VERIFIED" if evidence_refs else "WAITING_EVIDENCE",
+        "evidence_coverage": 100 if evidence_verified else 0,
+        "status": "VERIFIED" if evidence_verified else "WAITING_EVIDENCE",
     }

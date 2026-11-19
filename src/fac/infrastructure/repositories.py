@@ -7,6 +7,7 @@ from fac.contracts.common import ObjectRef
 from fac.contracts.events import EventEnvelope
 from fac.domain.events import _canonical
 from fac.infrastructure.models import (
+    CalculationResult,
     CalculationRun,
     CalculationSnapshot,
     EdpProjection,
@@ -57,7 +58,9 @@ class EdpRepository:
         return True
 
 
-CoreModel = type[CalculationRun] | type[CalculationSnapshot] | type[Evidence]
+CoreModel = (
+    type[CalculationRun] | type[CalculationSnapshot] | type[CalculationResult] | type[Evidence]
+)
 
 
 class CoreRepository:

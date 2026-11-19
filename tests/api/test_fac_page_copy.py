@@ -38,3 +38,15 @@ def test_formal_fac_page_does_not_expose_demo_copy(monkeypatch):
         "/api/v1/demo/",
     ):
         assert text not in response.text
+
+
+def test_formal_fac_page_does_not_offer_fake_external_action(monkeypatch):
+    monkeypatch.setenv("FAC_DEMO_ENABLED", "false")
+
+    response = TestClient(create_app()).get("/fac")
+
+    assert response.status_code == 200
+    assert "创建示例动作" not in response.text
+    assert "POMS 动作已创建" not in response.text
+    assert "查看待外部处理" in response.text
+    assert "/api/v1/fac/external-requests" in response.text

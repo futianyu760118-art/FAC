@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from fac.contracts.common import ObjectRef
 from fac.infrastructure.db import make_engine, make_session_factory
-from fac.infrastructure.models import Base
+from fac.infrastructure.models import Base, CalculationResult
 from fac.infrastructure.repositories import EdpRepository
 from fac.main import create_app
 
@@ -104,3 +104,63 @@ def test_formal_fac_calculation_api_uses_edp_refs_and_returns_versioned_result(t
     assert response.status_code == 200
     assert response.json()["result"]["total_cost"]["functional_amount"] == "46.00"
     assert response.json()["result"]["version"] == 1
+
+
+def test_formal_integration_projection_reflects_calculated_result(tmp_path, monkeypatch):
+    monkeypatch.setenv("FAC_DEMO_ENABLED", "false")
+    engine = make_engine(f"sqlite:///{tmp_path / 'formal-integration.db'}")
+    Base.metadata.create_all(engine)
+    with make_session_factory(engine)() as session:
+        _seed_formal_order(session)
+
+    client = TestClient(create_app(make_session_factory(engine)))
+    body = {
+        "tenant_id": "tenant-a",
+        "order_id": "ORD-1001",
+        "period_id": "2026-11",
+        "rule_id": "OFA_PLAN_COST",
+        "rule_version": "v1",
+        "input_refs": [
+            {"object_type": "Order", "object_id": "ORD-1001", "source_system": "m02-edp", "revision": 1},
+            {"object_type": "BOM", "object_id": "BOM-1001", "source_system": "m02-edp", "revision": 1},
+            {"object_type": "MaterialPrice", "object_id": "PRICE-1001", "source_system": "m02-edp", "revision": 1},
+            {"object_type": "Labor", "object_id": "LABOR-1001", "source_system": "m02-edp", "revision": 1},
+            {"object_type": "Expense", "object_id": "EXPENSE-1001", "source_system": "m02-edp", "revision": 1},
+        ],
+        "actor": "integration-test",
+        "idempotency_key": "formal-integration-v1",
+    }
+
+    calculated = client.post("/api/v1/fac/orders/ORD-1001/calculations", json=body)
+    projection = client.get("/api/v1/fac/integration", params={"tenant_id": "tenant-a"})
+
+    assert calculated.status_code == 200
+    fac_stage = next(stage for stage in projection.json()["stages"] if stage["module"] == "M09 FAC")
+    assert fac_stage["status"] == "WAITING_EVIDENCE"
+    assert fac_stage["output_refs"] == ["Order:ORD-1001:plan:v1"]
+
+
+def test_formal_evidence_does_not_verify_unknown_references(tmp_path, monkeypatch):
+    monkeypatch.setenv("FAC_DEMO_ENABLED", "false")
+    engine = make_engine(f"sqlite:///{tmp_path / 'formal-evidence.db'}")
+    Base.metadata.create_all(engine)
+    with make_session_factory(engine)() as session:
+        session.add(
+            CalculationResult(
+                tenant_id="tenant-a",
+                object_id="Order:ORD-1001:plan:v1",
+                source_system="fac",
+                revision=1,
+                payload={"evidence_refs": ["missing-evidence"]},
+            )
+        )
+        session.commit()
+
+    response = TestClient(create_app(make_session_factory(engine))).get(
+        "/api/v1/fac/results/Order%3AORD-1001%3Aplan%3Av1/evidence",
+        params={"tenant_id": "tenant-a"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "WAITING_EVIDENCE"
+    assert response.json()["evidence_coverage"] == 0
