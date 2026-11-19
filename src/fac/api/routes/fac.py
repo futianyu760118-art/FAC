@@ -175,6 +175,47 @@ def list_orders(
         .where(EdpProjection.tenant_id == tenant, EdpProjection.object_type == "Order")
         .order_by(EdpProjection.id)
     ).all()
+    projections = session.scalars(
+        select(EdpProjection).where(EdpProjection.tenant_id == tenant).order_by(EdpProjection.id)
+    ).all()
+
+    def input_refs(order: EdpProjection) -> list[dict[str, object]]:
+        product_id = order.payload.get("product_id")
+        boms = [
+            row
+            for row in projections
+            if row.object_type == "BOM" and row.payload.get("product_id") == product_id
+        ]
+        material_ids = {
+            line.get("material_id")
+            for bom in boms
+            for line in bom.payload.get("lines", [])
+            if line.get("material_id")
+        }
+        selected = [order, *boms]
+        selected.extend(
+            row
+            for row in projections
+            if row.object_type == "MaterialPrice"
+            and row.payload.get("material_id") in material_ids
+        )
+        selected.extend(
+            row
+            for row in projections
+            if row.object_type in {"Labor", "Expense"}
+            and row.payload.get("product_id") == product_id
+        )
+        selected.extend(row for row in projections if row.object_type == "FX")
+        return [
+            {
+                "object_type": row.object_type,
+                "object_id": row.object_id,
+                "source_system": row.source_system,
+                "revision": row.revision,
+            }
+            for row in selected
+        ]
+
     return [
         {
             "tenant_id": row.tenant_id,
@@ -182,6 +223,7 @@ def list_orders(
             "source_system": row.source_system,
             "revision": row.revision,
             "payload": row.payload,
+            "input_refs": input_refs(row),
         }
         for row in rows
     ]

@@ -176,6 +176,12 @@ def render_fac_page() -> str:
         "计算快照已冻结": "需先计算订单",
         "物料价格修订版 2": "等待 EDP 价格输入",
         "Value Ledger：待生成": "价值台账：待生成",
+        "result:plan:v2": "<span id=\"result-id\">待生成</span>",
+        "订单毛利结果 · ORD-1001": "待生成订单财经结果",
+        "PRICE-1001 · 修订版 2 · 已挂接证据": "等待 EDP 价格引用",
+        "订单毛利结果 V2 验证完成，证据覆盖率 100%。": "结果生成后执行证据验证，当前待验证。",
+        "ORD-1001 V2 绑定 BOM-1001、PRICE-1001 修订版 2、规则 v1。": "结果生成后展示冻结引用与证据状态。",
+        "打开 OFA 明细": "查看结果明细",
     }
     for old, new in replacements.items():
         html = html.replace(old, new)
@@ -194,7 +200,7 @@ def render_fac_page() -> str:
       current.replaceWith(button);
       button.addEventListener("click", handler);
     };
-    const formalState = {orders:[], rules:[], periods:[], events:[], externalRequests:[]};
+    const formalState = {orders:[], rules:[], periods:[], events:[], externalRequests:[], result:null, evidence:null};
     const setFormalWaiting = (message = "待接入 EDP 业务对象") => {
       const state = document.querySelector("#run-state");
       if (state) state.textContent = "A0 · 待接入";
@@ -216,7 +222,7 @@ def render_fac_page() -> str:
         eventList.innerHTML = formalState.events.length ? formalState.events.map((event) => `<tr><td><code>${escapeHtml(event.event_id)}</code></td><td>${escapeHtml(event.event_type || "财经计算事件")}</td><td>${escapeHtml(event.source_system)}</td><td>M09 FAC</td><td><code>${escapeHtml(event.object_id)}</code></td><td><code>${escapeHtml(event.idempotency_key)}</code></td><td><span class="badge warn">已记录</span></td></tr>`).join("") : `<tr><td colspan="7"><span class="badge warn">待接入事件</span></td></tr>`;
       }
       const summaryLedger = document.querySelector(".dashboard-grid table tbody");
-      if (summaryLedger) summaryLedger.innerHTML = formalState.events.length ? formalState.events.slice(-3).map((event) => `<tr><td><code>${escapeHtml(event.event_id)}</code></td><td>${escapeHtml(event.source_system)}</td><td>M09 FAC</td><td><code>${escapeHtml(event.object_id)}</code></td><td><span class="badge warn">已记录</span></td></tr>`).join("") : `<tr><td colspan="5"><span class="badge warn">待接入事件</span></td></tr>`;
+      if (summaryLedger) summaryLedger.innerHTML = formalState.events.length ? formalState.events.slice(-3).map((event) => `<tr><td><code>${escapeHtml(event.event_id)}</code></td><td>${escapeHtml(event.source_system)}</td><td>M09 FAC</td><td><code>${escapeHtml(event.object_id)}</code></td><td><span class="badge warn" id="ledger-status">已记录</span></td></tr>`).join("") : `<tr><td colspan="5"><span class="badge warn" id="ledger-status">待接入事件</span></td></tr>`;
       const signalValues = document.querySelectorAll(".signal strong");
       if (signalValues.length >= 4) {
         signalValues[0].textContent = formalState.orders.length ? String(formalState.orders.length) : "待接入";
@@ -233,6 +239,21 @@ def render_fac_page() -> str:
       const actions = document.querySelector("#poms-action-list");
       if (actions) actions.innerHTML = `<div class="projection-row"><div><strong>M10 POMS 动作</strong><small>外部动作接口已预留</small></div><div class="right"><span class="badge warn">待外部处理</span></div></div>`;
       setFormalWaiting();
+      if (formalState.result) {
+        const resultId = document.querySelector("#result-id"); if (resultId) resultId.textContent = formalState.result.result_id;
+        const state = document.querySelector("#run-state"); if (state) state.textContent = `A1 · 结果 V${formalState.result.version}`;
+        const trace = document.querySelector("#trace-badge"); if (trace) trace.textContent = "已生成";
+        const traceResult = document.querySelector("#trace-2"); if (traceResult) traceResult.textContent = `财经结果 V${formalState.result.version} 已生成，等待证据验证`;
+        const ledgerStatus = document.querySelector("#ledger-status"); if (ledgerStatus) { ledgerStatus.textContent = "已生成"; ledgerStatus.className = "badge warn"; }
+        const amount = formalState.result.total_cost ? `${formalState.result.total_cost.functional_amount} ${formalState.result.total_cost.functional_currency}` : "待计算";
+        const resultV1 = document.querySelector("#result-v1"); if (resultV1) resultV1.textContent = amount;
+        const evidenceCard = document.querySelector("[data-pane-panel=\"results\"] .stat-card:nth-child(3) strong"); if (evidenceCard) evidenceCard.textContent = `${formalState.evidence?.evidence_coverage ?? 0}%`;
+        const resultRows = document.querySelectorAll("[data-pane-panel=\"results\"] .list-row");
+        if (resultRows[0]) { resultRows[0].querySelector("strong").textContent = `订单财经结果 · ${formalState.orders[0]?.order_id || "当前订单"}`; resultRows[0].querySelector("small").textContent = `版本 V${formalState.result.version} · 结果状态 ${formalState.result.status}`; }
+        if (resultRows[2]) resultRows[2].querySelector("small").textContent = `冻结输入引用 ${formalState.result.evidence_refs.length} 项 · 证据 ${formalState.evidence?.status || "待查询"}`;
+        const evidenceActivity = document.querySelector("[data-pane-panel=\"evidence\"] .activity");
+        if (evidenceActivity) evidenceActivity.innerHTML = `<div class="activity-row"><span class="activity-time">FAC</span><code>finance.result</code><p>结果 ${escapeHtml(formalState.result.result_id)} 已生成，证据状态：${escapeHtml(formalState.evidence?.status || "WAITING_EVIDENCE")}，覆盖率 ${formalState.evidence?.evidence_coverage ?? 0}%。</p></div>`;
+      }
     };
     const loadFormalState = async () => {
       try {
@@ -253,11 +274,14 @@ def render_fac_page() -> str:
     const calculateFormalOrder = async () => {
       const order = formalState.orders[0];
       if (!order) { setFormalWaiting("暂无 EDP 订单，当前状态：待接入"); toast("暂无可计算订单：请先接入 M02 EDP"); return; }
-      const refs = [{object_type:"Order", object_id:order.order_id, source_system:order.source_system, revision:order.revision}];
+      const refs = order.input_refs || [{object_type:"Order", object_id:order.order_id, source_system:order.source_system, revision:order.revision}];
       const body = {tenant_id:order.tenant_id, order_id:order.order_id, period_id:formalState.periods[0]?.period_id || "未配置期间", rule_id:formalState.rules[0]?.rule_id || "OFA_PLAN_COST", rule_version:formalState.rules[0]?.version || "v1", input_refs:refs, actor:"fac-user", idempotency_key:`fac-ui-${order.order_id}-${Date.now()}`, reason:"正式工作台订单财经计算"};
       try {
         const button = document.querySelector("#run"); if (button) { button.disabled = true; button.textContent = "计算中…"; }
         const result = await formalApi(`/api/v1/fac/orders/${encodeURIComponent(order.order_id)}/calculations`, {method:"POST", body:JSON.stringify(body)});
+        formalState.result = result.result;
+        formalState.evidence = await formalApi(`/api/v1/fac/results/${encodeURIComponent(result.result.result_id)}/evidence`);
+        const resultId = document.querySelector("#result-id"); if (resultId) resultId.textContent = result.result.result_id;
         document.querySelector("#run-state").textContent = `A1 · 结果 V${result.result.version}`;
         document.querySelector("#trace-badge").textContent = "已生成";
         document.querySelector("#trace-2").textContent = `财经结果 V${result.result.version} 已生成，等待证据验证`;
@@ -265,6 +289,12 @@ def render_fac_page() -> str:
         document.querySelector("#ledger-status").className = "badge warn";
         toast("订单财经结果已生成，证据状态仍需核验");
         await loadFormalState();
+        window.setTimeout(() => {
+          const state = document.querySelector("#run-state"); if (state) state.textContent = `A1 · 结果 V${result.result.version}`;
+          const trace = document.querySelector("#trace-badge"); if (trace) trace.textContent = "已生成";
+          const traceResult = document.querySelector("#trace-2"); if (traceResult) traceResult.textContent = `财经结果 V${result.result.version} 已生成，等待证据验证`;
+          const ledgerStatus = document.querySelector("#ledger-status"); if (ledgerStatus) { ledgerStatus.textContent = "已生成"; ledgerStatus.className = "badge warn"; }
+        }, 0);
       } catch (error) { toast(`订单计算失败：${error.message}`); }
       finally { const button = document.querySelector("#run"); if (button) { button.disabled = false; button.textContent = "计算订单"; } }
     };
