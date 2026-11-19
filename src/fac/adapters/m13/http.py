@@ -50,6 +50,7 @@ class M13RuntimeAgent(BaseModel):
     runtime_id: str | None = None
     runtime_status: str | None = None
     m01_state: str
+    m01_agent_id: str | None = None
     effective_scopes: list[str] = Field(default_factory=list)
     dispatchable: bool
     updated_at: str
@@ -145,6 +146,7 @@ class HttpM13RegistryAdapter:
                     "runtime_id": item.get("runtimeId"),
                     "runtime_status": item.get("runtimeStatus"),
                     "m01_state": item.get("m01State"),
+                    "m01_agent_id": item.get("m01AgentId"),
                     "effective_scopes": item.get("effectiveScopes") or [],
                     "dispatchable": item.get("dispatchable"),
                     "updated_at": item.get("updatedAt"),
