@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     m13_registry_key_id: str = "fac-m09"
     m13_registry_secret: str = ""
     m13_registry_timeout_seconds: float = 5.0
+    m01_kernel_url: str = ""
+    m01_access_token: str = ""
+    m01_timeout_seconds: float = 5.0
 
     model_config = SettingsConfigDict(
         env_prefix="FAC_",
