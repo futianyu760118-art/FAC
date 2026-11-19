@@ -140,6 +140,65 @@ def test_demo_api_runs_calculation_recalculation_and_replay(tmp_path, monkeypatc
     assert len(state.json()["results"]) == 2
 
 
+def test_demo_integration_projection_tracks_the_complete_aeos_chain(tmp_path, monkeypatch):
+    monkeypatch.setenv("FAC_DEMO_ENABLED", "true")
+    engine = make_engine(f"sqlite:///{tmp_path / 'integration.db'}")
+    Base.metadata.create_all(engine)
+    client = TestClient(create_app(make_session_factory(engine)))
+
+    assert client.get("/api/v1/demo/integration").status_code == 404
+    assert client.post("/api/v1/demo/reset").status_code == 200
+
+    initial = client.get("/api/v1/demo/integration")
+    assert initial.status_code == 200
+    initial_payload = initial.json()
+    assert initial_payload["correlation_id"] == "FAC-DEMO-2025-01"
+    assert initial_payload["mode"] == "LOCAL_SANDBOX"
+    assert [stage["module"] for stage in initial_payload["stages"]] == [
+        "M02 EDP",
+        "M09 FAC",
+        "M13 Agent",
+        "M01 Guard",
+        "M10 POMS",
+        "FAC Verify",
+        "EBMS",
+    ]
+    assert initial_payload["stages"][0]["status"] == "WAITING"
+
+    body = {
+        "order_id": "ORD-1001",
+        "price_revision": 1,
+        "event_id": "demo-event-v1",
+        "idempotency_key": "demo-key-v1",
+        "trigger_type": "QuoteRecalculationRequired",
+        "reason": "Initial quote",
+        "actor": "demo-user",
+    }
+    assert client.post("/api/v1/demo/events/quote-recalculation", json=body).status_code == 200
+    v1 = client.get("/api/v1/demo/integration").json()
+    assert v1["stages"][1]["status"] == "COMPLETED"
+    assert v1["stages"][2]["status"] == "READY"
+    assert v1["stages"][3]["status"] == "WAITING"
+
+    v2_body = {
+        **body,
+        "price_revision": 2,
+        "event_id": "demo-event-v2",
+        "idempotency_key": "demo-key-v2",
+        "reason": "MaterialPriceRevision",
+    }
+    assert client.post("/api/v1/demo/events/quote-recalculation", json=v2_body).status_code == 200
+    completed = client.get("/api/v1/demo/integration").json()
+    assert all(stage["status"] == "COMPLETED" for stage in completed["stages"])
+    assert any(agent["dispatchable"] for agent in completed["agents"])
+    assert any(not agent["dispatchable"] for agent in completed["agents"])
+    assert any(case["status"] == "BLOCKED" for case in completed["decision_cases"])
+    assert any(action["status"] == "COMPLETED" for action in completed["actions"])
+    assert completed["verify"]["status"] == "VERIFIED"
+    assert completed["verify"]["evidence_coverage"] == 100
+    assert completed["ebms_status"] == "CONSUMED"
+
+
 def test_demo_page_contains_the_finance_workbench_workflow(monkeypatch):
     monkeypatch.setenv("FAC_DEMO_ENABLED", "true")
     response = TestClient(create_app()).get("/demo/fac")

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from fac.api.demo_page import render_demo_page
 from fac.api.fac_page import render_fac_page
 from fac.contracts.demo import (
+    DemoIntegrationState,
     DemoResetResponse,
     DemoStateResponse,
     DemoTriggerRequest,
@@ -48,6 +49,16 @@ def demo_state(session: Annotated[Session, Depends(get_session)]) -> DemoStateRe
     if not state.input_refs:
         raise HTTPException(status_code=404, detail="Demo has not been initialized")
     return state
+
+
+@router.get("/api/v1/demo/integration", response_model=DemoIntegrationState)
+def demo_integration(
+    session: Annotated[Session, Depends(get_session)],
+) -> DemoIntegrationState:
+    state = DemoService(session).state()
+    if not state.input_refs or state.integration is None:
+        raise HTTPException(status_code=404, detail="Demo has not been initialized")
+    return state.integration
 
 
 @router.post(
