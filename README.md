@@ -1,13 +1,10 @@
-# FAC
+# AEOS M09 FAC 财经自治中心
 
-FAC is being built in phases. This repository contains the service bootstrap,
-EDP fixture boundary, OFA calculation core, and a local finance calculation Demo;
-the full Phase 1 MVP is not yet implemented.
+本仓库是 FAC 正式产品化服务，当前阶段聚焦订单财经分析：从 M02 EDP 接入订单、BOM、物料价格、人工、费用和汇率事实，经过 OFA 计算生成版本化财经结果，并提供规则、期间、事件、证据和外部处理状态查询。
 
-## Local setup
+## 本地安装
 
-Requires Python 3.11. From the repository root, create and activate a virtual
-environment, then install the development dependencies:
+要求 Python 3.11。在仓库根目录执行：
 
 ```powershell
 py -3.11 -m venv .venv
@@ -16,61 +13,80 @@ python -m pip install -e ".[dev]"
 Copy-Item .env.example .env
 ```
 
-The default configuration uses SQLite, `CNY` as the functional currency, and
-the `development` environment. Override these values with `FAC_DATABASE_URL`,
-`FAC_FUNCTIONAL_CURRENCY`, and `FAC_ENVIRONMENT` in `.env` or the process
-environment. Do not put secrets in the example file or source control.
+正式运行配置使用以下环境变量：
 
-## Run the service
+- `FAC_DATABASE_URL`：数据库连接，默认建议使用 `sqlite:///./data/fac.db`。
+- `FAC_FUNCTIONAL_CURRENCY`：本位币，默认 `CNY`。
+- `FAC_ENVIRONMENT`：运行环境标识，默认 `development`。
+- `FAC_TENANT_ID`：正式工作台默认租户，默认 `default-tenant`。
+- `FAC_DEMO_ENABLED`：是否启用测试 Demo，正式环境必须为 `false`。
+
+## 正式本地运行
+
+使用正式脚本会先执行迁移，再显式导入 Phase 1 EDP 夹具，最后启动服务：
 
 ```powershell
-uvicorn fac.main:create_app --factory --reload
+.\scripts\run_fac.ps1
 ```
 
-Check the health endpoint at `http://127.0.0.1:8000/health`:
+正式入口：
+
+- 工作台：`http://127.0.0.1:8000/fac`
+- 健康检查：`http://127.0.0.1:8000/health`
+- 正式概览：`GET /api/v1/fac/overview`
+- 订单：`GET /api/v1/fac/orders`
+- 订单计算：`POST /api/v1/fac/orders/{order_id}/calculations`
+- 结果证据：`GET /api/v1/fac/results/{result_id}/evidence`
+- 待外部处理：`GET /api/v1/fac/external-requests`
+
+正式服务不会在启动时自动插入固定订单、规则或 Demo 数据；数据必须通过 EDP 接口、夹具导入或后续外部系统接口进入。
+
+## 数据生命周期
+
+执行迁移：
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8000/health
+$env:FAC_DATABASE_URL = "sqlite:///./data/fac.db"
+python -m alembic upgrade head
 ```
 
-It returns `{"status":"ok","service":"fac"}`. Run the tests with
-`python -m pytest -q`.
+重复执行 `upgrade head` 是安全的。升级前建议备份 SQLite 文件：
 
-## Run the local finance Demo
+```powershell
+Copy-Item .\data\fac.db .\data\backup\fac-$(Get-Date -Format yyyyMMdd-HHmmss).db
+```
 
-The Demo uses a separate `fac_demo.db`, seeds a fixed `demo-tenant` order, and
-shows real OFA calculation versions, snapshots, results, and replay behavior.
-It does not connect to production EDP, M02, M04, M13, or ERP systems.
+恢复时先停止服务，再替换数据库文件并重新执行健康检查：
+
+```powershell
+Copy-Item .\data\backup\fac-YYYYMMDD-HHmmss.db .\data\fac.db -Force
+python -m alembic upgrade head
+```
+
+如需回滚迁移，只允许在备份确认后执行：
+
+```powershell
+python -m alembic downgrade -1
+```
+
+生产环境建议将 `/app/data` 挂载为持久化卷，并在发布前完成数据库备份和迁移演练。
+
+## 测试 Demo（仅测试用途）
+
+Demo 与正式系统隔离，使用独立的 `fac_demo.db` 和 `demo-tenant`，不会代表正式工作台数据。运行：
 
 ```powershell
 .\scripts\run_fac_demo.ps1
 ```
 
-Open `http://127.0.0.1:8000/demo/fac`, then run the workflow in order:
+打开 `http://127.0.0.1:8000/demo/fac`。Demo 路由由 `FAC_DEMO_ENABLED=true` 显式开启，正式环境不得开启。
 
-1. 初始化 Demo 数据
-2. 运行初次计算 — V1 total `46.00 CNY`
-3. 价格修正并重算 — V2 total `52.00 CNY`
-4. 重放最近事件 — no duplicate result
+## 验证
 
-The Demo is disabled by default through `FAC_DEMO_ENABLED=false`.
+```powershell
+ruff check src tests
+python -m pytest -q
+python -m alembic check
+```
 
-## Run the AEOS FAC integration workbench
-
-Open `http://127.0.0.1:8000/fac` for the AEOS-style M09 FAC integration console.
-It presents the main cross-system chain from `CRM / PLM → M02 EDP → FAC → M13
-Agent → M01 Guard → M10 POMS → Verify → EBMS`, including the Event Ledger,
-runtime trace, result/evidence views, and a replay-safe demo action.
-
-The `运行联调演示` button executes the local EDP/OFA workflow and renders the
-Agent, Guard, POMS, and Verify stages as explicit integration projections. The
-OFA calculation segment is real local demo behavior; external service calls are
-represented as clearly labeled sandbox states until those services are connected.
-The detailed OFA workbench remains available at `http://127.0.0.1:8000/demo/fac`.
-
-The complete projection is also available from `GET /api/v1/demo/integration`
-after initialization. It exposes the correlation ID, idempotency setting, seven
-integration stages, the M13 Registry projection, M01 DecisionCase queue, M10
-POMS Action queue, FAC Verify evidence coverage, Value Ledger, EBMS consumption
-status, and the event ledger. Before initialization it returns `404` so the UI
-does not show a false completed state.
+当前已经具备本系统内的订单财经计算、版本化结果、事件幂等、规则/期间模型、证据查询和外部请求状态；M13 智能体、M01 防护、M10 POMS、EBMS 等外部系统保留正式接口和 `待接入/待外部处理` 状态，待接口资料确认后接入。
