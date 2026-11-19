@@ -2,7 +2,7 @@
 
 from datetime import UTC, date, datetime
 
-from sqlalchemy import Boolean, Date, JSON, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 

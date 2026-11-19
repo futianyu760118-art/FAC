@@ -1,9 +1,25 @@
 """Formal FAC product routes independent from the development Demo routes."""
 
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from fac.api.fac_page import render_fac_page
+from fac.contracts.fac import FacCalculationRequest
+from fac.infrastructure.db import get_session
+from fac.infrastructure.models import (
+    CalculationResult,
+    CalculationRun,
+    EdpProjection,
+    EventRecord,
+    ExternalRequest,
+    FinancePeriod,
+    FinanceRule,
+)
+from fac.modules.fac.service import FacService
 from fac.settings import get_settings
 
 router = APIRouter(tags=["FAC"])
@@ -24,4 +40,200 @@ def fac_overview() -> dict[str, object]:
         "status": "ready",
         "environment": settings.environment,
         "demo_enabled": settings.demo_enabled,
+    }
+
+
+def _tenant(value: str | None) -> str:
+    tenant_id = value or get_settings().tenant_id
+    if not tenant_id.strip():
+        raise HTTPException(status_code=400, detail="tenant_id is required")
+    return tenant_id
+
+
+def _same_origin(request: Request) -> None:
+    origin = request.headers.get("origin")
+    host = request.headers.get("host")
+    if origin and host and origin.split("//", 1)[-1] != host:
+        raise HTTPException(status_code=403, detail="cross-origin FAC write is not allowed")
+
+
+@router.get("/api/v1/fac/orders")
+def list_orders(
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> list[dict[str, object]]:
+    tenant = _tenant(tenant_id)
+    rows = session.scalars(
+        select(EdpProjection)
+        .where(EdpProjection.tenant_id == tenant, EdpProjection.object_type == "Order")
+        .order_by(EdpProjection.id)
+    ).all()
+    return [
+        {
+            "tenant_id": row.tenant_id,
+            "order_id": row.object_id,
+            "source_system": row.source_system,
+            "revision": row.revision,
+            "payload": row.payload,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/api/v1/fac/rules")
+def list_rules(
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> list[dict[str, object]]:
+    tenant = _tenant(tenant_id)
+    return [
+        {
+            "tenant_id": row.tenant_id,
+            "rule_id": row.rule_id,
+            "version": row.version,
+            "rule_name": row.rule_name,
+            "status": row.status,
+            "effective_from": row.effective_from,
+            "effective_to": row.effective_to,
+            "owner": row.owner,
+            "approval_status": row.approval_status,
+            "source_fields": row.source_fields,
+            "evidence_required": row.evidence_required,
+        }
+        for row in session.scalars(
+            select(FinanceRule)
+            .where(FinanceRule.tenant_id == tenant)
+            .order_by(FinanceRule.rule_id, FinanceRule.version)
+        ).all()
+    ]
+
+
+@router.get("/api/v1/fac/periods")
+def list_periods(
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> list[dict[str, object]]:
+    tenant = _tenant(tenant_id)
+    return [
+        {
+            "tenant_id": row.tenant_id,
+            "period_id": row.period_id,
+            "functional_currency": row.functional_currency,
+            "status": row.status,
+            "closed_at": row.closed_at,
+        }
+        for row in session.scalars(
+            select(FinancePeriod)
+            .where(FinancePeriod.tenant_id == tenant)
+            .order_by(FinancePeriod.period_id)
+        ).all()
+    ]
+
+
+@router.get("/api/v1/fac/events")
+def list_events(
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> list[dict[str, object]]:
+    tenant = _tenant(tenant_id)
+    return [
+        {
+            "tenant_id": row.tenant_id,
+            "event_id": row.event_id,
+            "idempotency_key": row.idempotency_key,
+            "object_id": row.object_id,
+            "source_system": row.source_system,
+            "revision": row.revision,
+            "payload": row.payload,
+        }
+        for row in session.scalars(
+            select(EventRecord).where(EventRecord.tenant_id == tenant).order_by(EventRecord.id)
+        ).all()
+    ]
+
+
+@router.get("/api/v1/fac/external-requests")
+def list_external_requests(
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> list[dict[str, object]]:
+    tenant = _tenant(tenant_id)
+    return [
+        {
+            "tenant_id": row.tenant_id,
+            "request_id": row.request_id,
+            "correlation_id": row.correlation_id,
+            "target_system": row.target_system,
+            "request_type": row.request_type,
+            "idempotency_key": row.idempotency_key,
+            "status": row.status,
+            "attempts": row.attempts,
+            "last_error": row.last_error,
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        }
+        for row in session.scalars(
+            select(ExternalRequest)
+            .where(ExternalRequest.tenant_id == tenant)
+            .order_by(ExternalRequest.id)
+        ).all()
+    ]
+
+
+@router.post("/api/v1/fac/orders/{order_id}/calculations")
+def calculate_order(
+    order_id: str,
+    request: FacCalculationRequest,
+    http_request: Request,
+    session: Annotated[Session, Depends(get_session)],
+) -> dict[str, object]:
+    _same_origin(http_request)
+    if request.order_id != order_id:
+        raise HTTPException(status_code=400, detail="order_id does not match request")
+    try:
+        result = FacService(session, request.tenant_id).calculate_order(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "CALCULATED", "result": result}
+
+
+@router.get("/api/v1/fac/calculations/{calculation_id}")
+def get_calculation(
+    calculation_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> dict[str, object]:
+    row = session.scalar(
+        select(CalculationRun).where(
+            CalculationRun.tenant_id == _tenant(tenant_id),
+            CalculationRun.object_id == calculation_id,
+            CalculationRun.source_system == "fac",
+        )
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="calculation not found")
+    return {"id": row.object_id, "version": row.revision, "payload": row.payload}
+
+
+@router.get("/api/v1/fac/results/{result_id}/evidence")
+def get_result_evidence(
+    result_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    tenant_id: str | None = Query(default=None),
+) -> dict[str, object]:
+    row = session.scalar(
+        select(CalculationResult).where(
+            CalculationResult.tenant_id == _tenant(tenant_id),
+            CalculationResult.object_id == result_id,
+            CalculationResult.source_system == "fac",
+        )
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="finance result not found")
+    evidence_refs = tuple(row.payload.get("evidence_refs", ()))
+    return {
+        "result_id": result_id,
+        "evidence_refs": evidence_refs,
+        "evidence_coverage": 100 if evidence_refs else 0,
+        "status": "VERIFIED" if evidence_refs else "WAITING_EVIDENCE",
     }

@@ -3,9 +3,9 @@
 from fastapi import FastAPI
 from sqlalchemy.orm import Session, sessionmaker
 
+from fac.api.routes.fac import router as fac_router
 from fac.api.routes.health import router as health_router
 from fac.api.routes.imports import router as import_router
-from fac.api.routes.fac import router as fac_router
 from fac.infrastructure.db import get_session
 from fac.settings import get_settings
 

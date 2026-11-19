@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./fac.db"
     functional_currency: str = "CNY"
     environment: str = "development"
+    tenant_id: str = "default-tenant"
     demo_enabled: bool = False
 
     model_config = SettingsConfigDict(

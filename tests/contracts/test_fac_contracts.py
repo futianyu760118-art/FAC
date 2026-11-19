@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -69,7 +69,7 @@ def test_rule_period_and_external_request_contracts_preserve_governance_fields()
         idempotency_key="action-001",
         status="WAITING_EXTERNAL",
         attempts=0,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     assert rule.evidence_required is True
