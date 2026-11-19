@@ -5,8 +5,8 @@
 - 发布日期：2026-11-19
 - 发布目标：腾讯云同一公网入口 `http://150.158.13.110:18000/fac`
 - 运行容器：`fac-fac-1`
-- 镜像：`fac-formal:20261119`
-- 镜像摘要：`sha256:f9778de186928d73bac6e9978941567dcf370f01cc8589eb02385feb2de94eb7`
+- 镜像：`fac-formal:20261119-r2`
+- 镜像摘要：`sha256:bb4e7b2543dd9b27efabec842f86361bc4147191343fd84c89d58d6484dd4a43`
 - 正式数据目录：`/home/ubuntu/fac-formal-data-20261119-prod`
 - 数据库：`/app/data/fac.db`，由宿主机目录持久化
 - 正式配置：`FAC_DEMO_ENABLED=false`、`FAC_ENVIRONMENT=production`、`FAC_TENANT_ID=tenant-a`
@@ -33,24 +33,26 @@
 
 ## 旧版本保留与回滚
 
-旧公网容器已停止并保留为：
+旧公网容器和上一版正式容器均已停止并保留：
 
 - 容器：`fac-fac-demo-rollback-20261119`
 - 镜像：`fac-demo:20261119-fast2`
+- 上一版正式回滚容器：`fac-fac-formal-r1-rollback-20261119`
+- 上一版正式镜像：`fac-formal:20261119`
 - 旧 Demo 数据备份：`/home/ubuntu/fac-rollback-20261119/fac_demo.db`
 - 旧容器与镜像 inspect：同目录下的 `old-container-inspect.json`、`old-image-inspect.json`
 
-如正式容器需要回滚，先在腾讯云主机执行：
+如需回滚到上一版正式容器，先在腾讯云主机执行：
 
 ```bash
 docker stop fac-fac-1
-docker rename fac-fac-1 fac-fac-formal-failed-20261119
-docker rename fac-fac-demo-rollback-20261119 fac-fac-demo-1
-docker start fac-fac-demo-1
+docker rename fac-fac-1 fac-fac-formal-r2-failed-20261119
+docker rename fac-fac-formal-r1-rollback-20261119 fac-fac-1
+docker start fac-fac-1
 curl -fsS http://127.0.0.1:18000/health
 ```
 
-恢复正式版本时，停止旧容器后重新将正式容器以 `fac-fac-1`、`18000:8000` 和 `/home/ubuntu/fac-formal-data-20261119-prod:/app/data` 启动，并执行 `python -m alembic upgrade head`。
+如需回滚到发布前的临时 Demo，则停止正式容器后，将 `fac-fac-demo-rollback-20261119` 改名为 `fac-fac-demo-1` 并启动；其独立数据库备份位于 `/home/ubuntu/fac-rollback-20261119/fac_demo.db`。恢复正式版本时，停止旧容器后重新将正式容器以 `fac-fac-1`、`18000:8000` 和 `/home/ubuntu/fac-formal-data-20261119-prod:/app/data` 启动，并执行 `python -m alembic upgrade head`。
 
 ## 当前边界
 
