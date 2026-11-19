@@ -6,11 +6,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from fac.adapters.m13.http import (
+    HttpM13RegistryAdapter,
+    M13RegistryConfigurationError,
+    M13RegistryError,
+    M13RuntimeSnapshot,
+)
 from fac.domain.m13_agents import FAC_AGENT_REGISTRY_V1, FinanceAgentRegistration
 from fac.domain.quote_finance import QuoteFinanceInput, QuoteFinanceResult, calculate_quote_finance
 from fac.infrastructure.db import get_session
 from fac.infrastructure.models import CalculationRun, CalculationSnapshot
 from fac.infrastructure.repositories import CoreRepository, RevisionConflict
+from fac.settings import get_settings
 
 router = APIRouter(prefix="/api/v1/fac", tags=["FAC Finance"])
 
@@ -157,4 +164,23 @@ def list_recalculation_requirements(
 
 @router.get("/m13/finance-agents", response_model=list[FinanceAgentRegistration])
 def list_finance_agents() -> list[FinanceAgentRegistration]:
+    """M09 professional catalog; this is not the runtime source of truth."""
     return list(FAC_AGENT_REGISTRY_V1)
+
+
+@router.get("/m13/finance-agents/runtime", response_model=M13RuntimeSnapshot)
+def list_live_finance_agents() -> M13RuntimeSnapshot:
+    """Read runtime eligibility from M13; fail closed when registry is unavailable."""
+    settings = get_settings()
+    try:
+        adapter = HttpM13RegistryAdapter(
+            base_url=settings.m13_registry_url,
+            key_id=settings.m13_registry_key_id,
+            secret=settings.m13_registry_secret,
+            timeout=settings.m13_registry_timeout_seconds,
+        )
+        return adapter.list_runtime()
+    except M13RegistryConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except M13RegistryError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

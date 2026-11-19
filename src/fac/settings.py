@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./fac.db"
     functional_currency: str = "CNY"
     environment: str = "development"
+    m13_registry_url: str = ""
+    m13_registry_key_id: str = "fac-m09"
+    m13_registry_secret: str = ""
+    m13_registry_timeout_seconds: float = 5.0
 
     model_config = SettingsConfigDict(
         env_prefix="FAC_",

@@ -1,22 +1,13 @@
 """Port for validating FAC agents against the M13 registry."""
 
-from __future__ import annotations
-
 from typing import Protocol
 
+from fac.adapters.m13.http import AgentNotPublished, AgentNotRegistered
 from fac.domain.m13_agents import (
     FAC_AGENT_REGISTRY_V1,
     AgentStatus,
     FinanceAgentRegistration,
 )
-
-
-class AgentNotRegistered(LookupError):
-    """The requested finance agent is not registered in M13."""
-
-
-class AgentNotPublished(PermissionError):
-    """The requested finance agent exists but is not published for use."""
 
 
 class M13RegistryPort(Protocol):
@@ -26,7 +17,7 @@ class M13RegistryPort(Protocol):
 
 
 class LocalM13RegistryAdapter:
-    """Temporary adapter over the frozen registry until the real M13 API is connected."""
+    """Development-only adapter over the frozen FAC professional catalog."""
 
     def __init__(
         self,
