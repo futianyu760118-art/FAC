@@ -33,6 +33,7 @@ def _payload(*, dispatchable: bool = True):
                 "runtimeId": "runtime-1",
                 "runtimeStatus": "online",
                 "m01State": "active" if dispatchable else "pending",
+                "m01AgentId": "agent-harbor-1" if dispatchable else None,
                 "effectiveScopes": ["task:execute"] if dispatchable else [],
                 "dispatchable": dispatchable,
                 "updatedAt": "2026-11-19T01:20:00.000Z",
@@ -119,4 +120,5 @@ def test_live_registry_endpoint_returns_m13_projection(monkeypatch):
     body = response.json()
     assert body["registry_system"] == "M13"
     assert body["items"][0]["agent_id"] == "AG-FAC-001"
+    assert body["items"][0]["m01_agent_id"] == "agent-harbor-1"
     assert body["items"][0]["dispatchable"] is True
