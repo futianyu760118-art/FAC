@@ -8,6 +8,7 @@ def render_fac_page() -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
   <title>AEOS V7.2.2 · M09 FAC</title>
   <style>
     :root { --bg:#090f18; --panel:#101b29; --line:#24364a; --ink:#e8f0f7; --muted:#7890a5;

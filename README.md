@@ -67,3 +67,10 @@ Agent, Guard, POMS, and Verify stages as explicit integration projections. The
 OFA calculation segment is real local demo behavior; external service calls are
 represented as clearly labeled sandbox states until those services are connected.
 The detailed OFA workbench remains available at `http://127.0.0.1:8000/demo/fac`.
+
+The complete projection is also available from `GET /api/v1/demo/integration`
+after initialization. It exposes the correlation ID, idempotency setting, seven
+integration stages, the M13 Registry projection, M01 DecisionCase queue, M10
+POMS Action queue, FAC Verify evidence coverage, Value Ledger, EBMS consumption
+status, and the event ledger. Before initialization it returns `404` so the UI
+does not show a false completed state.
