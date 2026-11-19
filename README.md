@@ -55,10 +55,15 @@ Open `http://127.0.0.1:8000/demo/fac`, then run the workflow in order:
 
 The Demo is disabled by default through `FAC_DEMO_ENABLED=false`.
 
-## Run the full FAC workbench
+## Run the AEOS FAC integration workbench
 
-Open `http://127.0.0.1:8000/fac` for the complete local FAC product workbench.
-It includes the finance overview, revenue and margin, order finance, AR, cash,
-budget, risk, and evidence views. The order finance module runs the real local
-OFA calculation path; the other modules use clearly labeled management-finance
-demo data for interaction and presentation.
+Open `http://127.0.0.1:8000/fac` for the AEOS-style M09 FAC integration console.
+It presents the main cross-system chain from `CRM / PLM → M02 EDP → FAC → M13
+Agent → M01 Guard → M10 POMS → Verify → EBMS`, including the Event Ledger,
+runtime trace, result/evidence views, and a replay-safe demo action.
+
+The `运行联调演示` button executes the local EDP/OFA workflow and renders the
+Agent, Guard, POMS, and Verify stages as explicit integration projections. The
+OFA calculation segment is real local demo behavior; external service calls are
+represented as clearly labeled sandbox states until those services are connected.
+The detailed OFA workbench remains available at `http://127.0.0.1:8000/demo/fac`.

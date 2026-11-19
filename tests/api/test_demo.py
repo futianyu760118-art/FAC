@@ -27,14 +27,14 @@ def test_full_fac_workbench_is_exposed_when_demo_is_enabled(monkeypatch):
 
     assert response.status_code == 200
     for text in (
-        "财经健康总览",
-        "收入与毛利",
-        "订单财经",
-        "应收 AR",
-        "资金 Cash",
-        "预算 Budget",
-        "风险与证据",
-        "run-ofa",
+        "FAC 财经自治中心",
+        "真实系统联调主干",
+        "M02 EDP",
+        "M13 Agent",
+        "M01 Guard",
+        "M10 POMS",
+        "Event Ledger",
+        "运行联调演示",
     ):
         assert text in response.text
 
