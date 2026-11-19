@@ -5,8 +5,8 @@
 - 发布日期：2026-11-19
 - 发布目标：腾讯云同一公网入口 `http://150.158.13.110:18000/fac`
 - 运行容器：`fac-fac-1`
-- 镜像：`fac-formal:20261119-r6`
-- 镜像摘要：`sha256:d9df587235b9c1676af497d8a2b03d4d1b6cdf79fc78aeb6082dada226ec309f`
+- 镜像：`fac-formal:20261119-r7`
+- 镜像摘要：`sha256:ed7d7fa71186d2aaf69b4418e987dba1d59cb0d8a7a9f665818952fb0384f698`
 - 正式数据目录：`/home/ubuntu/fac-formal-data-20261119-prod`
 - 数据库：`/app/data/fac.db`，由宿主机目录持久化
 - 正式配置：`FAC_DEMO_ENABLED=false`、`FAC_ENVIRONMENT=production`、`FAC_TENANT_ID=tenant-a`
@@ -29,7 +29,7 @@
 - 证据查询：`WAITING_EVIDENCE`，覆盖率 `0%`。外部证据未接入时没有伪造“已验证”。
 - 公网页面：`/fac` 正式文案、正式 API hooks、`计算订单` 和 `待外部处理` 可见；旧 Demo 文案不可见。
 - 前台工作台：首屏以订单财经分析为主，支持选择订单、查看销售金额/计划成本/预计毛利、计算订单、提交复核、查看证据覆盖率和待外部处理；系统事件、智能体协同、财经标准、运行设置和外部接口等后台模块默认收纳到“更多模块”。
-- 订单核算：保留原 OFA 订单核算模块为一级导航，独立展示核算版本、核算规则、财经期间、销售/成本/毛利和冻结输入引用，并保留“重新核算订单”入口。
+- EBMS 订单成本核算：恢复原“订单分析库”结构为一级导航，包含“订单审核台、详情比对、多维分析、问题汇总”，保留订单金额、计划成本、采购确认成本、实际成本、计划毛利、毛利率、差异、审核和一键检查字段；FAC-OFA 结果作为可追溯核算来源。
 - 浏览器验收：公网首屏显示 `订单财经分析`、`ORD-001`、`834.00 CNY`、`0%` 证据覆盖率；点击“系统详情”可进入后台台账；点击“计算订单”无 console error。
 - 配置导航验收：展开“更多模块”后可进入“标准 / 设置 / 接口”，集中查看财经规则、期间、运行配置和 M02/M13/M01/M10/EBMS 接入状态。
 - 重启验收：重启 `fac-fac-1` 后 `ORD-001` 和 `Order:ORD-001:plan:v1` 仍可查询。
@@ -42,8 +42,8 @@
 - 镜像：`fac-demo:20261119-fast2`
 - 上一版正式回滚容器：`fac-fac-formal-r1-rollback-20261119`
 - 上一版正式镜像：`fac-formal:20261119`
-- 本次发布前正式回滚容器：`fac-fac-formal-r5-rollback-20261119`
-- 本次发布前正式镜像：`fac-formal:20261119-r5`
+- 本次发布前正式回滚容器：`fac-fac-formal-r6-rollback-20261119`
+- 本次发布前正式镜像：`fac-formal:20261119-r6`
 - 旧 Demo 数据备份：`/home/ubuntu/fac-rollback-20261119/fac_demo.db`
 - 旧容器与镜像 inspect：同目录下的 `old-container-inspect.json`、`old-image-inspect.json`
 
@@ -51,8 +51,8 @@
 
 ```bash
 docker stop fac-fac-1
-docker rename fac-fac-1 fac-fac-formal-r6-failed-20261119
-docker rename fac-fac-formal-r5-rollback-20261119 fac-fac-1
+docker rename fac-fac-1 fac-fac-formal-r7-failed-20261119
+docker rename fac-fac-formal-r6-rollback-20261119 fac-fac-1
 docker start fac-fac-1
 curl -fsS http://127.0.0.1:18000/health
 ```

@@ -282,6 +282,36 @@ def render_fac_page() -> str:
   .calculation-refs { margin-top:17px; }
   .calculation-refs h2 { font-size:16px; }
   .calculation-refs .settings-list { margin-top:10px; }
+  .ebms-tabs { display:flex; gap:2px; margin-top:17px; border-bottom:1px solid #2b4c62; overflow:auto; }
+  .ebms-tabs button { padding:11px 17px; border:0; border-bottom:2px solid transparent; background:transparent; color:#91a9b9; cursor:pointer; white-space:nowrap; font-size:13px; }
+  .ebms-tabs button.active { color:#e1f0f8; border-bottom-color:#62c4f5; background:rgba(66,163,226,.08); }
+  .ebms-tab-panel { display:none; margin-top:15px; }
+  .ebms-tab-panel.active { display:block; }
+  .ebms-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+  .ebms-toolbar input, .ebms-toolbar select { min-height:34px; padding:7px 9px; border:1px solid #2b526b; border-radius:6px; background:#0c2033; color:#dbeaf5; font-size:12px; }
+  .ebms-toolbar input { min-width:190px; }
+  .ebms-stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:13px; }
+  .ebms-stat { padding:13px; border:1px solid #274d64; border-radius:8px; background:rgba(8,20,33,.38); }
+  .ebms-stat strong { display:block; color:#e1f0f8; font-size:20px; }
+  .ebms-stat span { display:block; margin-top:4px; color:#8ea8bb; font-size:11px; }
+  .ebms-table-wrap { overflow:auto; border:1px solid #24465e; border-radius:8px; }
+  .ebms-table { width:100%; min-width:1260px; border-collapse:collapse; font-size:11px; }
+  .ebms-table th { padding:10px 8px; color:#8ea8bb; background:#102a40; border-bottom:1px solid #2a526c; text-align:left; white-space:nowrap; }
+  .ebms-table td { padding:10px 8px; color:#dbeaf5; border-bottom:1px solid rgba(103,160,196,.13); white-space:nowrap; }
+  .ebms-table tr:hover td { background:rgba(66,163,226,.08); }
+  .ebms-table .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .ebms-action { padding:4px 7px; border:1px solid #397da3; border-radius:5px; background:transparent; color:#8bd1f5; cursor:pointer; font-size:11px; }
+  .ebms-action + .ebms-action { margin-left:4px; }
+  .ebms-detail-grid { display:grid; grid-template-columns:1.1fr .9fr; gap:14px; }
+  .ebms-detail-card { padding:16px; border:1px solid #274d64; border-radius:8px; background:rgba(8,20,33,.28); }
+  .ebms-detail-card h3 { margin:0 0 10px; color:#e1f0f8; font-size:14px; }
+  .ebms-tree-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid rgba(103,160,196,.13); color:#c9dce8; font-size:12px; }
+  .ebms-tree-row small { color:#8ea8bb; }
+  .ebms-report-bars { display:grid; gap:9px; margin-top:13px; }
+  .ebms-report-bar { display:grid; grid-template-columns:90px 1fr 90px; align-items:center; gap:10px; color:#b7ccd8; font-size:12px; }
+  .ebms-report-bar i { display:block; height:9px; border-radius:99px; background:linear-gradient(90deg,#50b8e9,#65dbb0); }
+  @media (max-width:900px) { .ebms-stat-grid { grid-template-columns:repeat(2,1fr); } .ebms-detail-grid { grid-template-columns:1fr; } }
+  @media (max-width:560px) { .ebms-stat-grid { grid-template-columns:1fr 1fr; } .ebms-toolbar input { min-width:150px; } }
   #integration-details { display:none; }
   @media (max-width:900px) { .settings-grid, .calculation-grid { grid-template-columns:1fr; } }
   @media (max-width:560px) { .calculation-metrics { grid-template-columns:1fr; } .calculation-actions { flex-direction:column; } }
@@ -330,11 +360,58 @@ def render_fac_page() -> str:
       const page = document.querySelector("main.page");
       if (!page || document.querySelector('[data-pane-panel="calculation"]')) return;
       page.insertAdjacentHTML("beforeend", `<section class="pane" data-pane-panel="calculation">
-        <div class="page-head"><div><div class="eyebrow">M09 · OFA 订单核算</div><h1>订单核算</h1><p class="subtitle">保留原订单核算模块：基于 EDP 冻结输入执行 OFA 计划成本核算，并保留版本化结果。</p></div><div class="head-right"><span class="badge blue">正式核算模块</span></div></div>
+        <div class="page-head"><div><div class="eyebrow">EBMS · 经营中心</div><h1>EBMS 订单成本核算</h1><p class="subtitle">保留原 EBMS 订单分析库的审核台、详情比对、多维分析和问题汇总；FAC-OFA 负责提供可追溯的财经核算结果。</p></div><div class="head-right"><span class="badge blue">原订单分析库</span></div></div>
+        <div class="ebms-tabs" id="ebms-tabs"><button class="active" data-ebms-tab="audit">订单审核台</button><button data-ebms-tab="detail">详情比对</button><button data-ebms-tab="report">多维分析</button><button data-ebms-tab="issues">问题汇总</button></div>
+        <section class="panel ebms-tab-panel active" data-ebms-tab-panel="audit"><div class="ebms-stat-grid"><div class="ebms-stat"><strong id="ebms-stat-total">0</strong><span>订单总数</span></div><div class="ebms-stat"><strong id="ebms-stat-review">0</strong><span>待审核订单</span></div><div class="ebms-stat"><strong id="ebms-stat-cost">待计算</strong><span>计划成本合计</span></div><div class="ebms-stat"><strong id="ebms-stat-risk">待检查</strong><span>问题 / 风险</span></div></div><div class="ebms-toolbar"><input id="ebms-keyword" placeholder="订单号 / 客户 / 产品"><select id="ebms-review-filter"><option value="">全部审核状态</option><option value="pending">待审核</option><option value="approved">已通过</option><option value="rejected">已驳回</option></select><select id="ebms-cost-filter"><option value="">全部成本状态</option><option value="waiting">待核算</option><option value="calculated">已核算</option></select><button class="button" id="ebms-refresh">查询</button><button class="button primary" id="ebms-check">一键检查</button></div><div class="ebms-table-wrap"><table class="ebms-table"><thead><tr><th>订单号</th><th>客户</th><th>产品</th><th>数量</th><th>订单金额</th><th>审核状态</th><th>计划成本</th><th>采购确认成本</th><th>计划毛利</th><th>毛利率</th><th>实际成本</th><th>实际毛利</th><th>差异</th><th>操作</th></tr></thead><tbody id="ebms-order-table"><tr><td colspan="14" class="front-empty">正在加载订单…</td></tr></tbody></table></div></section>
+        <section class="panel ebms-tab-panel" data-ebms-tab-panel="detail"><div class="ebms-detail-grid"><div class="ebms-detail-card"><h3>订单成本明细</h3><div id="ebms-detail-body"><div class="front-empty">请在订单审核台选择订单。</div></div></div><div class="ebms-detail-card"><h3>核算结果与审核</h3><div id="ebms-detail-result"><div class="front-empty">请选择订单查看结果。</div></div></div></div></section>
+        <section class="panel ebms-tab-panel" data-ebms-tab-panel="report"><div class="ebms-detail-card"><h3>多维分析</h3><div class="ebms-toolbar"><select><option>按客户</option><option>按产品</option><option>按审核状态</option><option>按风险</option></select><button class="button" id="ebms-report-refresh">生成分析</button></div><div class="ebms-report-bars" id="ebms-report-bars"><div class="front-empty">选择分析维度后生成统计。</div></div></div></section>
+        <section class="panel ebms-tab-panel" data-ebms-tab-panel="issues"><div class="ebms-detail-card"><h3>问题汇总</h3><p class="calculation-meta">问题来自订单自检、BOM/价格/证据完整性检查和成本差异。</p><div class="settings-list" id="ebms-issues-list"><div class="front-empty">暂无检查结果，请在订单审核台点击“一键检查”。</div></div></div></section>
         <div class="calculation-grid"><article class="panel calculation-card"><div class="front-analysis-head"><div><h2 id="calculation-title">当前订单核算</h2><div class="calculation-meta" id="calculation-meta">等待选择正式订单</div></div><span class="front-state" id="calculation-status">待计算</span></div><div class="calculation-metrics"><div class="calculation-metric"><label>销售金额</label><strong id="calculation-sales">待选择</strong></div><div class="calculation-metric cost"><label>计划成本</label><strong id="calculation-cost">待计算</strong></div><div class="calculation-metric margin"><label>预计毛利</label><strong id="calculation-margin">待计算</strong></div></div><div class="calculation-actions"><button class="button primary" id="calculation-run">重新核算订单</button><button class="button" id="calculation-result-link">查看财经结果</button></div><p class="front-hint" id="calculation-hint">核算会读取订单、BOM、价格、人工、费用和汇率等冻结输入，生成新的结果版本。</p></article><aside class="panel calculation-card"><h2>核算版本</h2><div class="settings-list"><div class="settings-row"><div><strong>结果版本</strong><small id="calculation-version">待生成</small></div><span class="badge warn" id="calculation-version-status">待计算</span></div><div class="settings-row"><div><strong>核算规则</strong><small id="calculation-rule">OFA_PLAN_COST · v1</small></div><span class="badge blue">已登记</span></div><div class="settings-row"><div><strong>财经期间</strong><small id="calculation-period">等待期间配置</small></div><span class="badge warn" id="calculation-period-status">待配置</span></div></div></aside></div>
         <article class="panel calculation-card calculation-refs"><h2>核算输入引用</h2><div class="settings-list" id="calculation-refs"><div class="front-empty">生成核算结果后展示冻结输入引用。</div></div></article>
       </section>`);
       document.querySelector("#calculation-result-link")?.addEventListener("click", () => document.querySelector("[data-pane=results]")?.click());
+      qsa("[data-ebms-tab]").forEach((tab) => tab.addEventListener("click", () => { const name = tab.dataset.ebmsTab; qsa("[data-ebms-tab]").forEach((item) => item.classList.toggle("active", item === tab)); qsa("[data-ebms-tab-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.ebmsTabPanel === name)); if (name === "detail") renderEbmsOrderCost(); }));
+      document.querySelector("#ebms-keyword")?.addEventListener("input", renderEbmsOrderCost);
+      document.querySelector("#ebms-review-filter")?.addEventListener("change", renderEbmsOrderCost);
+      document.querySelector("#ebms-cost-filter")?.addEventListener("change", renderEbmsOrderCost);
+      document.querySelector("#ebms-refresh")?.addEventListener("click", () => { renderEbmsOrderCost(); toast("订单成本核算列表已刷新"); });
+      document.querySelector("#ebms-check")?.addEventListener("click", () => { const tab = document.querySelector("[data-ebms-tab=issues]"); tab?.click(); renderEbmsOrderCost(); toast("已生成订单成本核算检查项"); });
+      document.querySelector("#ebms-report-refresh")?.addEventListener("click", () => { renderEbmsOrderCost(); toast("多维成本分析已生成"); });
+    };
+    const renderEbmsOrderCost = () => {
+      const selected = formalState.orders.find((item) => item.order_id === formalState.selectedOrderId) || formalState.orders[0];
+      const keyword = (document.querySelector("#ebms-keyword")?.value || "").trim().toLowerCase();
+      const costFilter = document.querySelector("#ebms-cost-filter")?.value || "";
+      const rows = formalState.orders.filter((order) => {
+        const result = formalState.result && formalState.result.result_id?.includes(order.order_id) ? formalState.result : null;
+        const haystack = `${order.order_id} ${order.payload?.customer_id || ""} ${order.payload?.product_id || ""}`.toLowerCase();
+        return (!keyword || haystack.includes(keyword)) && (!costFilter || (costFilter === "calculated" ? Boolean(result) : !result));
+      });
+      const result = selected && formalState.result && formalState.result.result_id?.includes(selected.order_id || "") ? formalState.result : null;
+      const sales = frontSales(selected);
+      const cost = result?.total_cost;
+      const margin = sales && cost ? sales.amount - Number(cost.functional_amount) : null;
+      const setText = (selector, value) => { const node = document.querySelector(selector); if (node) node.textContent = value; };
+      setText("#ebms-stat-total", String(formalState.orders.length));
+      setText("#ebms-stat-review", result ? "1" : String(formalState.orders.length));
+      setText("#ebms-stat-cost", cost ? frontMoney(cost.functional_amount, cost.functional_currency) : "待计算");
+      setText("#ebms-stat-risk", formalState.evidence?.status === "WAITING_EVIDENCE" ? "证据待核验" : "待检查");
+      const table = document.querySelector("#ebms-order-table");
+      if (table) table.innerHTML = rows.length ? rows.map((order) => {
+        const rowResult = formalState.result && formalState.result.result_id?.includes(order.order_id) ? formalState.result : null;
+        const rowSales = frontSales(order); const rowCost = rowResult?.total_cost; const rowMargin = rowSales && rowCost ? rowSales.amount - Number(rowCost.functional_amount) : null;
+        return `<tr data-ebms-order="${escapeHtml(order.order_id)}"><td><strong>${escapeHtml(order.order_id)}</strong></td><td>${escapeHtml(order.payload?.customer_id || "待接入")}</td><td>${escapeHtml(order.payload?.product_id || "待接入")}</td><td class="num">${escapeHtml(order.payload?.quantity || "待接入")}</td><td class="num">${rowSales ? frontMoney(rowSales.amount, rowSales.currency) : "待接入"}</td><td><span class="front-status ${rowResult ? "warn" : "warn"}">${rowResult ? "待审核" : "待核算"}</span></td><td class="num">${rowCost ? frontMoney(rowCost.functional_amount, rowCost.functional_currency) : "待计算"}</td><td class="num">待接入</td><td class="num">${rowMargin === null ? "待计算" : frontMoney(rowMargin, rowSales.currency)}</td><td class="num">${rowSales && rowMargin !== null ? `${((rowMargin / rowSales.amount) * 100).toFixed(2)}%` : "待计算"}</td><td class="num">待接入</td><td class="num">待接入</td><td class="num">待接入</td><td><button class="ebms-action" data-ebms-action="detail" data-ebms-order="${escapeHtml(order.order_id)}">详情</button><button class="ebms-action" data-ebms-action="review" data-ebms-order="${escapeHtml(order.order_id)}">审核</button><button class="ebms-action" data-ebms-action="check" data-ebms-order="${escapeHtml(order.order_id)}">检查</button></td></tr>`;
+      }).join("") : `<tr><td colspan="14" class="front-empty">暂无符合条件的订单。</td></tr>`;
+      qsa("[data-ebms-action]").forEach((button) => button.addEventListener("click", (event) => { event.stopPropagation(); formalState.selectedOrderId = button.dataset.ebmsOrder; const action = button.dataset.ebmsAction; if (action === "detail") document.querySelector("[data-ebms-tab=detail]")?.click(); else if (action === "check") { document.querySelector("[data-ebms-tab=issues]")?.click(); toast("订单检查项已生成，实际成本和外部接口仍待接入"); } else toast("EBMS 审核接口已保留，当前正式状态：待外部处理"); renderEbmsOrderCost(); }));
+      qsa("#ebms-order-table tr[data-ebms-order]").forEach((row) => row.addEventListener("click", () => { formalState.selectedOrderId = row.dataset.ebmsOrder; renderEbmsOrderCost(); renderCalculationPane(); }));
+      const detailBody = document.querySelector("#ebms-detail-body");
+      if (detailBody) detailBody.innerHTML = selected ? `<div class="ebms-tree-row"><span>BOM 物料成本</span><small>由 EDP BOM / 物料价格计算 · ${cost ? frontMoney(cost.functional_amount, cost.functional_currency) : "待计算"}</small></div><div class="ebms-tree-row"><span>人工成本</span><small>待接入 EBMS 人工 / 工价明细</small></div><div class="ebms-tree-row"><span>制造费用</span><small>待接入 EBMS 费用明细</small></div><div class="ebms-tree-row"><span>采购确认成本</span><small>待接入采购确认数据</small></div><div class="ebms-tree-row"><span>输入引用</span><small>${result?.evidence_refs?.length || selected.input_refs?.length || 0} 项冻结引用</small></div>` : `<div class="front-empty">请在订单审核台选择订单。</div>`;
+      const detailResult = document.querySelector("#ebms-detail-result");
+      if (detailResult) detailResult.innerHTML = result ? `<div class="ebms-tree-row"><span>计划成本</span><strong>${frontMoney(cost.functional_amount, cost.functional_currency)}</strong></div><div class="ebms-tree-row"><span>计划毛利</span><strong>${margin === null ? "待计算" : frontMoney(margin, sales.currency)}</strong></div><div class="ebms-tree-row"><span>核算版本</span><small>V${result.version} · ${escapeHtml(result.result_id)}</small></div><div class="ebms-tree-row"><span>审核状态</span><span class="badge warn">待审核</span></div>` : `<div class="front-empty">请先执行订单成本核算。</div>`;
+      const report = document.querySelector("#ebms-report-bars");
+      if (report) report.innerHTML = formalState.orders.length ? [`客户：${selected?.payload?.customer_id || "当前客户"}`, `产品：${selected?.payload?.product_id || "当前产品"}`, `审核状态：${result ? "待审核" : "待核算"}`].map((label) => `<div class="ebms-report-bar"><span>${escapeHtml(label)}</span><i style="width:100%"></i><b>1 单</b></div>`).join("") : `<div class="front-empty">暂无订单分析数据。</div>`;
+      const issues = document.querySelector("#ebms-issues-list");
+      if (issues) issues.innerHTML = selected ? `<div class="settings-row"><div><strong>证据引用完整性</strong><small>${formalState.evidence?.status === "WAITING_EVIDENCE" ? "财经结果已生成，但证据仍待核验" : "等待核算结果"}</small></div><span class="badge warn">待处理</span></div><div class="settings-row"><div><strong>实际成本回写</strong><small>EBMS 实际成本接口尚未接入</small></div><span class="badge warn">待接入</span></div><div class="settings-row"><div><strong>BOM / 工价 / 费用明细</strong><small>保留原订单成本核算字段，等待对应接口提供明细</small></div><span class="badge warn">待接入</span></div>` : `<div class="front-empty">暂无订单检查项。</div>`;
     };
     const renderCalculationPane = () => {
       const selected = formalState.orders.find((item) => item.order_id === formalState.selectedOrderId) || formalState.orders[0];
@@ -356,6 +433,7 @@ def render_fac_page() -> str:
       setText("#calculation-period-status", formalState.periods[0] ? statusText(formalState.periods[0].status) : "待配置");
       const refs = document.querySelector("#calculation-refs");
       if (refs) refs.innerHTML = result?.evidence_refs?.length ? result.evidence_refs.map((ref) => `<div class="settings-row"><div><strong>${escapeHtml(ref)}</strong><small>冻结输入引用 · 用于本次 OFA 核算</small></div><span class="badge good">已引用</span></div>`).join("") : `<div class="front-empty">${selected ? "当前结果暂无输入引用，执行核算后展示。" : "当前暂无正式订单。"}</div>`;
+      renderEbmsOrderCost();
     };
     const mountFrontOffice = () => {
       const pane = document.querySelector('[data-pane-panel="control"]');
@@ -560,7 +638,7 @@ def render_fac_page() -> str:
       current.replaceWith(button);
       button.addEventListener("click", loadFormalState);
     });
-    const frontNavCopy = {control:"订单分析", calculation:"订单核算", events:"系统详情", results:"财经结果", agents:"智能体协同", guards:"复核管理", actions:"待外部处理", evidence:"证据管理", settings:"标准 / 设置 / 接口"};
+    const frontNavCopy = {control:"订单分析", calculation:"EBMS 订单成本核算", events:"系统详情", results:"财经结果", agents:"智能体协同", guards:"复核管理", actions:"待外部处理", evidence:"证据管理", settings:"标准 / 设置 / 接口"};
     document.querySelectorAll(".nav button[data-pane]").forEach((button) => {
       const label = button.querySelector("span:last-child");
       if (label && frontNavCopy[button.dataset.pane]) label.textContent = frontNavCopy[button.dataset.pane];
