@@ -88,7 +88,7 @@ def _signed_headers(key_id: str, secret: str, *, now_ms: int | None = None) -> d
     timestamp = str(now_ms if now_ms is not None else int(time.time() * 1000))
     signature = hmac.new(
         secret.encode("utf-8"),
-        f"{timestamp}.".encode("utf-8"),
+        f"{timestamp}.".encode(),
         hashlib.sha256,
     ).hexdigest()
     return {
