@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     edp_source_system: str = "spc"
     edp_timeout_seconds: float = 8.0
     edp_order_limit: int = 50
+    ebms_base_url: str = ""
+    ebms_api_key: str = ""
+    ebms_source_system: str = "ebms"
+    ebms_timeout_seconds: float = 8.0
+    ebms_order_limit: int = 50
 
     model_config = SettingsConfigDict(
         env_prefix="FAC_",

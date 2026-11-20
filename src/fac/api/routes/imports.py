@@ -10,14 +10,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from fac.adapters.ebms.adapter import EbmsApiAdapter
 from fac.adapters.edp.adapter import (
     EdpApiAdapter,
-    EdpApiError,
     EdpImportReport,
     EdpImportRequest,
 )
 from fac.adapters.edp_mock.adapter import EdpAdapter
 from fac.adapters.edp_mock.models import EdpFixture, ImportReport
+from fac.adapters.priority import PriorityImportAdapter, SourceImportError
 from fac.infrastructure.db import get_session
 from fac.infrastructure.models import EdpImportRun
 from fac.settings import get_settings
@@ -43,11 +44,17 @@ def edp_status(session: Annotated[Session, Depends(get_session)]) -> dict[str, o
         .first()
     )
     return {
-        "configured": bool(settings.edp_base_url.strip() and settings.edp_api_key.strip()),
+        "configured": bool(settings.edp_base_url.strip()),
+        "edp_configured": bool(settings.edp_base_url.strip()),
+        "ebms_configured": bool(settings.ebms_base_url.strip()),
+        "preferred_source": "edp",
         "base_url": settings.edp_base_url,
+        "ebms_base_url": settings.ebms_base_url,
         "source_system": settings.edp_source_system,
+        "fallback_source_system": settings.ebms_source_system,
         "last_import": {
             "import_id": latest.import_id,
+            "source": latest.source,
             "status": latest.status,
             "accepted_count": latest.accepted_count,
             "skipped_count": latest.skipped_count,
@@ -55,6 +62,8 @@ def edp_status(session: Annotated[Session, Depends(get_session)]) -> dict[str, o
             "started_at": latest.started_at,
             "finished_at": latest.finished_at,
             "error": latest.error,
+            "source_chain": (latest.payload or {}).get("source_chain", []),
+            "fallback_reason": (latest.payload or {}).get("fallback_reason"),
         }
         if latest
         else None,
@@ -78,7 +87,7 @@ def import_from_edp(
     run = EdpImportRun(
         tenant_id=tenant_id,
         import_id=import_id,
-        source=settings.edp_source_system,
+        source="edp",
         status="RUNNING",
         requested_order=payload.order_no,
         payload={"limit": payload.limit},
@@ -86,15 +95,20 @@ def import_from_edp(
     session.add(run)
     session.flush()
     try:
-        report = EdpApiAdapter(session, settings).import_orders(
+        report = PriorityImportAdapter(
+            edp=EdpApiAdapter(session, settings),
+            ebms=EbmsApiAdapter(session, settings),
+        ).import_orders(
             payload.model_copy(update={"tenant_id": tenant_id}), import_id=import_id
         )
-    except EdpApiError as exc:
+    except SourceImportError as exc:
         run.status = "FAILED"
         run.error = str(exc)[:1024]
+        run.source = "edp->ebms"
         run.finished_at = datetime.now(UTC)
         session.commit()
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    run.source = report.source
     run.status = report.status
     run.accepted_count = report.accepted_count
     run.skipped_count = report.skipped_count

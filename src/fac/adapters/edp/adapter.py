@@ -37,6 +37,8 @@ class EdpImportRequest(BaseModel):
 class EdpImportReport(BaseModel):
     import_id: str
     source: str
+    source_chain: list[str] = Field(default_factory=list)
+    fallback_reason: str | None = None
     status: str
     requested_order: str | None = None
     accepted_count: int = 0
@@ -188,7 +190,7 @@ class EdpApiAdapter:
             available.append("inventory")
         return EdpImportReport(
             import_id=import_id or f"edp-import-{uuid4().hex[:16]}",
-            source=self.settings.edp_source_system,
+            source="edp",
             status="SUCCEEDED" if not rejected else "PARTIAL",
             requested_order=request.order_no,
             accepted_count=report.accepted_count,

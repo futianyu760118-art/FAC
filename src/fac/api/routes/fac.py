@@ -197,6 +197,11 @@ def list_orders(
     projections = session.scalars(
         select(EdpProjection).where(EdpProjection.tenant_id == tenant).order_by(EdpProjection.id)
     ).all()
+    ebms_analysis = {
+        row.object_id: row.payload
+        for row in projections
+        if row.object_type == "EBMSOrderAnalysis"
+    }
 
     def input_refs(order: EdpProjection) -> list[dict[str, object]]:
         product_id = order.payload.get("product_id")
@@ -235,17 +240,22 @@ def list_orders(
             for row in selected
         ]
 
-    return [
-        {
-            "tenant_id": row.tenant_id,
-            "order_id": row.object_id,
-            "source_system": row.source_system,
-            "revision": row.revision,
-            "payload": row.payload,
-            "input_refs": input_refs(row),
-        }
-        for row in rows
-    ]
+    result = []
+    for row in rows:
+        payload = dict(row.payload)
+        if row.source_system == "ebms" and row.object_id in ebms_analysis:
+            payload["ebms_analysis"] = ebms_analysis[row.object_id]
+        result.append(
+            {
+                "tenant_id": row.tenant_id,
+                "order_id": row.object_id,
+                "source_system": row.source_system,
+                "revision": row.revision,
+                "payload": payload,
+                "input_refs": input_refs(row),
+            }
+        )
+    return result
 
 
 @router.get("/api/v1/fac/rules")

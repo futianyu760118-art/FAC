@@ -20,8 +20,10 @@ Copy-Item .env.example .env
 - `FAC_ENVIRONMENT`：运行环境标识，默认 `development`。
 - `FAC_TENANT_ID`：正式工作台默认租户，默认 `default-tenant`。
 - `FAC_DEMO_ENABLED`：是否启用测试 Demo，正式环境必须为 `false`。
-- `FAC_EDP_BASE_URL` / `FAC_EDP_API_KEY`：EDP 只读 Tool API 地址和服务密钥；未配置时“从 EDP 导入实际数据”会失败并保留明确诊断。
+- `FAC_EDP_BASE_URL` / `FAC_EDP_API_KEY`：EDP 只读 Tool API 地址和服务密钥；EDP 是首选来源。
 - `FAC_EDP_SOURCE_SYSTEM`：EDP 中的源系统标识，真实 SPC 接入默认 `spc`。
+- `FAC_EBMS_BASE_URL` / `FAC_EBMS_API_KEY`：EBMS 订单核算只读 API 地址和 Bearer 服务令牌；EDP 不可用时自动兜底。
+- `FAC_EBMS_SOURCE_SYSTEM`：EBMS 投影的源系统标识，默认 `ebms`。
 
 ## 正式本地运行
 
@@ -93,14 +95,16 @@ python -m alembic check
 
 当前已经具备本系统内的订单财经计算、版本化结果、事件幂等、规则/期间模型、证据查询和外部请求状态；M13 智能体、M01 防护、M10 POMS、EBMS 等外部系统保留正式接口和 `待接入/待外部处理` 状态，待接口资料确认后接入。
 
-## 从 EDP 导入实际数据
+## 导入实际数据：EDP 优先、EBMS 兜底
 
-正式 FAC 不直连 SPC/ERP 数据库。先由 EDP 的 `DB_PULL/CDC` 适配器完成入库，FAC 通过 EDP 的只读 Tool API 导入订单、BOM、采购单和库存事实：
+正式 FAC 不直连 SPC/ERP 数据库，也不写入 EBMS。导入策略为：先通过 EDP 的只读 Tool API 获取订单、BOM、采购单和库存；当 EDP 未配置、超时、HTTP 异常或响应格式不符合契约时，再通过 EBMS 订单核算只读接口获取订单、BOM 及计划/实际成本字段。两边都不可用时接口返回两侧诊断，不使用演示数据填充。
 
 ```powershell
 $env:FAC_EDP_BASE_URL = "http://edp-api:8000"
 $env:FAC_EDP_API_KEY = "<EDP readonly API key>"
 $env:FAC_EDP_SOURCE_SYSTEM = "spc"
+$env:FAC_EBMS_BASE_URL = "http://ebms-api:18000"
+$env:FAC_EBMS_API_KEY = "<EBMS readonly Bearer token>"
 ```
 
-页面入口为“从 EDP 导入实际数据”，接口为 `POST /api/v1/fac/edp/import`；导入记录可通过 `GET /api/v1/fac/edp/status` 查询。FAC 会明确报告 EDP 尚未提供的财经价格、人工、费用和汇率事实，不用演示夹具填充这些字段。
+页面入口为“导入实际数据（EDP 优先 / EBMS 兜底）”，接口仍为 `POST /api/v1/fac/edp/import`；导入记录可通过 `GET /api/v1/fac/edp/status` 查询。响应中的 `source`、`source_chain`、`fallback_reason` 会记录实际命中的来源和切换原因。FAC 会明确报告源系统尚未提供的财经事实，不用演示夹具填充这些字段。
