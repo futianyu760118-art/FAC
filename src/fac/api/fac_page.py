@@ -335,13 +335,33 @@ def render_fac_page() -> str:
       current.replaceWith(button);
       button.addEventListener("click", handler);
     };
-    const formalState = {orders:[], rules:[], periods:[], events:[], externalRequests:[], result:null, evidence:null};
+    const formalState = {orders:[], rules:[], periods:[], events:[], externalRequests:[], result:null, evidence:null, edpStatus:null};
     const frontMoney = (value, currency = "CNY") => value === null || value === undefined || value === "" ? "待计算" : `${Number(value).toLocaleString("zh-CN", {minimumFractionDigits:2, maximumFractionDigits:2})} ${currency}`;
     const frontSales = (order) => {
       const payload = order?.payload || {};
+      if (payload.amount !== null && payload.amount !== undefined && payload.currency) return {amount: Number(payload.amount), currency: payload.currency};
       const quantity = Number(payload.quantity || 0);
       const unit = Number(payload.unit_price?.amount || 0);
       return quantity && unit ? {amount: quantity * unit, currency: payload.unit_price.currency || "CNY"} : null;
+    };
+    const refreshEdpStatus = async () => {
+      try {
+        formalState.edpStatus = await formalApi("/api/v1/fac/edp/status");
+        const badge = document.querySelector("#edp-import-status");
+        if (badge) { badge.textContent = formalState.edpStatus.configured ? "EDP 已配置" : "EDP 待配置"; badge.className = `badge ${formalState.edpStatus.configured ? "good" : "warn"}`; }
+      } catch (error) { toast(`EDP 状态查询失败：${error.message}`); }
+    };
+    const importFromEdp = async () => {
+      const button = document.querySelector("#edp-import");
+      if (button) { button.disabled = true; button.textContent = "导入中…"; }
+      try {
+        const report = await formalApi("/api/v1/fac/edp/import", {method:"POST", body:JSON.stringify({limit:50})});
+        toast(`EDP 导入完成：订单 ${report.orders} · BOM ${report.boms} · 采购 ${report.purchase_orders} · 库存 ${report.inventory}`);
+        await loadFormalState();
+        const missing = report.missing_data?.length ? `；未提供：${report.missing_data.join("、")}` : "";
+        const hint = document.querySelector("#front-hint"); if (hint) hint.textContent = `${report.message || "已导入 EDP 实际对象。"}${missing}`;
+      } catch (error) { toast(`EDP 导入失败：${error.message}`); }
+      finally { if (button) { button.disabled = false; button.textContent = "从 EDP 导入实际数据"; } }
     };
     const mountSettingsPane = () => {
       const page = document.querySelector("main.page");
@@ -360,7 +380,7 @@ def render_fac_page() -> str:
       const page = document.querySelector("main.page");
       if (!page || document.querySelector('[data-pane-panel="calculation"]')) return;
       page.insertAdjacentHTML("beforeend", `<section class="pane" data-pane-panel="calculation">
-        <div class="page-head"><div><div class="eyebrow">EBMS · 经营中心</div><h1>EBMS 订单成本核算</h1><p class="subtitle">保留原 EBMS 订单分析库的审核台、详情比对、多维分析和问题汇总；FAC-OFA 负责提供可追溯的财经核算结果。</p></div><div class="head-right"><span class="badge blue">原订单分析库</span></div></div>
+        <div class="page-head"><div><div class="eyebrow">EBMS · 经营中心</div><h1>EBMS 订单成本核算</h1><p class="subtitle">保留原 EBMS 订单分析库的审核台、详情比对、多维分析和问题汇总；FAC-OFA 负责提供可追溯的财经核算结果。</p></div><div class="head-right"><span class="badge blue" id="edp-import-status">EDP 待配置</span><button class="button primary" id="edp-import">从 EDP 导入实际数据</button></div></div>
         <div class="ebms-tabs" id="ebms-tabs"><button class="active" data-ebms-tab="audit">订单审核台</button><button data-ebms-tab="detail">详情比对</button><button data-ebms-tab="report">多维分析</button><button data-ebms-tab="issues">问题汇总</button></div>
         <section class="panel ebms-tab-panel active" data-ebms-tab-panel="audit"><div class="ebms-stat-grid"><div class="ebms-stat"><strong id="ebms-stat-total">0</strong><span>订单总数</span></div><div class="ebms-stat"><strong id="ebms-stat-review">0</strong><span>待审核订单</span></div><div class="ebms-stat"><strong id="ebms-stat-cost">待计算</strong><span>计划成本合计</span></div><div class="ebms-stat"><strong id="ebms-stat-risk">待检查</strong><span>问题 / 风险</span></div></div><div class="ebms-toolbar"><input id="ebms-keyword" placeholder="订单号 / 客户 / 产品"><select id="ebms-review-filter"><option value="">全部审核状态</option><option value="pending">待审核</option><option value="approved">已通过</option><option value="rejected">已驳回</option></select><select id="ebms-cost-filter"><option value="">全部成本状态</option><option value="waiting">待核算</option><option value="calculated">已核算</option></select><button class="button" id="ebms-refresh">查询</button><button class="button primary" id="ebms-check">一键检查</button></div><div class="ebms-table-wrap"><table class="ebms-table"><thead><tr><th>订单号</th><th>客户</th><th>产品</th><th>数量</th><th>订单金额</th><th>审核状态</th><th>计划成本</th><th>采购确认成本</th><th>计划毛利</th><th>毛利率</th><th>实际成本</th><th>实际毛利</th><th>差异</th><th>操作</th></tr></thead><tbody id="ebms-order-table"><tr><td colspan="14" class="front-empty">正在加载订单…</td></tr></tbody></table></div></section>
         <section class="panel ebms-tab-panel" data-ebms-tab-panel="detail"><div class="ebms-detail-grid"><div class="ebms-detail-card"><h3>订单成本明细</h3><div id="ebms-detail-body"><div class="front-empty">请在订单审核台选择订单。</div></div></div><div class="ebms-detail-card"><h3>核算结果与审核</h3><div id="ebms-detail-result"><div class="front-empty">请选择订单查看结果。</div></div></div></div></section>
@@ -377,6 +397,7 @@ def render_fac_page() -> str:
       document.querySelector("#ebms-refresh")?.addEventListener("click", () => { renderEbmsOrderCost(); toast("订单成本核算列表已刷新"); });
       document.querySelector("#ebms-check")?.addEventListener("click", () => { const tab = document.querySelector("[data-ebms-tab=issues]"); tab?.click(); renderEbmsOrderCost(); toast("已生成订单成本核算检查项"); });
       document.querySelector("#ebms-report-refresh")?.addEventListener("click", () => { renderEbmsOrderCost(); toast("多维成本分析已生成"); });
+      document.querySelector("#edp-import")?.addEventListener("click", importFromEdp);
     };
     const renderEbmsOrderCost = () => {
       const selected = formalState.orders.find((item) => item.order_id === formalState.selectedOrderId) || formalState.orders[0];
@@ -440,7 +461,7 @@ def render_fac_page() -> str:
       if (!pane) return;
       pane.innerHTML = `<div class="front-shell">
         <header class="front-head"><div><div class="front-kicker">M09 · 财经工作台</div><h1>订单财经分析</h1><p>完成订单的收入、成本、毛利测算与复核提报，证据与外部处理状态一并跟踪。</p></div><a class="front-system-link" id="front-system-link">系统详情 →</a></header>
-        <section class="front-panel front-orders"><div class="front-toolbar"><h2>选择订单</h2><span class="front-count" id="front-order-count">待接入订单</span></div><div class="front-table"><div class="front-table-head"><span>订单编号</span><span>客户 / 产品</span><span>销售金额</span><span>计划成本</span><span>预计毛利</span><span>复核状态</span><span>证据覆盖</span></div><div id="front-order-list" class="front-table"><div class="front-empty">正在加载正式订单…</div></div></div></section>
+        <section class="front-panel front-orders"><div class="front-toolbar"><div><h2>选择订单</h2><span class="front-count" id="front-order-count">待接入订单</span></div><button class="button primary" id="front-edp-import">从 EDP 导入实际数据</button></div><div class="front-table"><div class="front-table-head"><span>订单编号</span><span>客户 / 产品</span><span>销售金额</span><span>计划成本</span><span>预计毛利</span><span>复核状态</span><span>证据覆盖</span></div><div id="front-order-list" class="front-table"><div class="front-empty">正在加载正式订单…</div></div></div></section>
         <section class="front-grid"><article class="front-panel front-analysis"><div class="front-analysis-head"><div><h2 id="front-analysis-title">选择订单后开始分析</h2><div id="front-analysis-meta" class="front-meta">订单、BOM、价格和汇率由 M02 EDP 提供</div></div><span class="front-state" id="front-analysis-state">待接入</span></div><div class="front-metrics"><div class="front-metric"><label>销售金额</label><strong id="front-sales">待选择</strong><em>订单收入</em></div><div class="front-metric cost"><label>计划成本</label><strong id="front-cost">待计算</strong><em id="front-cost-status">需先计算订单</em></div><div class="front-metric margin"><label>预计毛利</label><strong id="front-margin">待计算</strong><em id="front-margin-status">生成结果后展示</em></div></div><div class="front-actions"><button class="button primary" id="run">计算订单</button><button class="button" id="front-review">提交复核</button></div><p class="front-hint" id="front-hint">提示：请先计算订单生成最新财经结果，确认输入证据后再提交复核。</p></article><aside class="front-panel front-review-panel"><div class="front-review-head"><h2>复核状态</h2><span class="badge warn" id="front-review-badge">待计算</span></div><div class="front-timeline"><div class="front-step active" id="front-step-calculate"><strong>财经测算</strong><small>计算订单的收入、计划成本与预计毛利</small></div><div class="front-step" id="front-step-submit"><strong>提交复核</strong><small>提交财经结果与证据，等待复核</small></div><div class="front-step" id="front-step-review"><strong>复核中</strong><small>复核人员核对财经结果与证据</small></div><div class="front-step" id="front-step-done"><strong>复核完成</strong><small>确认结果并归档</small></div></div></aside></section>
         <section class="front-bottom"><article class="front-panel"><div class="front-bottom-head"><h2>证据覆盖率</h2><span class="badge warn" id="front-evidence-badge">待验证</span></div><div class="front-coverage"><strong id="front-evidence-coverage">0%</strong><div class="front-progress"><i id="front-evidence-progress"></i></div><small id="front-evidence-count">待生成结果</small></div><div class="front-evidence-list" id="front-evidence-list"><div class="front-empty">生成财经结果后展示证据状态</div></div></article><article class="front-panel"><div class="front-bottom-head"><h2>待外部处理</h2><span class="badge warn" id="front-external-count">0 项</span></div><div class="front-external-list" id="front-external-list"><div class="front-empty">暂无外部处理请求</div></div></article></section>
       </div>`;
@@ -452,6 +473,7 @@ def render_fac_page() -> str:
         event.currentTarget.textContent = open ? "收起系统详情 ↑" : "系统详情 →";
         if (open) details.scrollIntoView({behavior:"smooth", block:"start"});
       });
+      document.querySelector("#front-edp-import")?.addEventListener("click", importFromEdp);
       document.querySelector("#front-review")?.addEventListener("click", () => toast(formalState.result ? "复核接口已预留，当前状态：待外部处理" : "请先计算订单生成财经结果"));
     };
     const renderFrontOffice = () => {
@@ -649,6 +671,7 @@ def render_fac_page() -> str:
     mountCalculationPane();
     mountFrontOffice();
     renderFrontOffice();
+    refreshEdpStatus();
     loadFormalState();
   </script>
 '''

@@ -3,11 +3,12 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from fac.adapters.edp.adapter import EdpApiAdapter, EdpApiError, EdpImportRequest
 from fac.adapters.edp_mock.adapter import EdpAdapter
 from fac.adapters.edp_mock.models import EdpFixture
 from fac.contracts.common import ObjectRef
 from fac.infrastructure.db import make_engine, make_session_factory
-from fac.infrastructure.models import Base
+from fac.infrastructure.models import Base, EdpProjection
 from fac.infrastructure.repositories import EdpRepository
 from fac.main import create_app
 
@@ -128,3 +129,74 @@ def test_changed_price_at_same_revision_is_rejected_and_original_preserved(tmp_p
             "tenant-a", ObjectRef("MaterialPrice", "PRICE-001", "edp-mock", 1)
         )
         assert price.payload["unit_price"]["amount"] == "20"
+
+
+class _FakeEdpClient:
+    def get(self, path, params=None):
+        if path == "/api/v1/tools/orders":
+            return {"items": [{"order_no": "SO-REAL-001", "object_id": "order-object"}]}
+        if path == "/api/v1/tools/orders/SO-REAL-001":
+            return {
+                "order_no": "SO-REAL-001",
+                "object_id": "order-object",
+                "customer": {"code": "C-REAL", "name": "实际客户"},
+                "amount": 1200,
+                "currency": "USD",
+                "order_date": "2026-11-01",
+                "lines": [{"product_code": "P-REAL", "material_code": "M-REAL", "quantity": 10, "unit_price": 120}],
+                "evidence_hint": {"object_id": "order-object", "event_id": "order-event"},
+            }
+        if path == "/api/v1/tools/bom":
+            return {
+                "product_code": "P-REAL",
+                "bom_version": "V7",
+                "items": [{"material_code": "M-REAL", "quantity_per": 2}],
+                "evidence_hint": {"object_id": "product-object", "event_id": "bom-event"},
+            }
+        if path == "/api/v1/tools/purchase-orders":
+            return {"items": [{"po_no": "PO-REAL-001", "object_id": "po-object", "material_code": "M-REAL", "quantity": 20, "status": "已确认", "evidence_hint": {"object_id": "po-object"}}]}
+        if path == "/api/v1/tools/inventory":
+            return {"material_code": "M-REAL", "material_id": "material-object", "warehouses": [{"warehouse": "主仓", "available": 100, "reserved": 10}], "total_available": 100, "evidence_hint": {"object_id": "material-object"}}
+        if path.startswith("/api/v1/objects/"):
+            return {"revision": 3}
+        raise AssertionError((path, params))
+
+
+def test_real_edp_import_maps_governed_objects_and_is_idempotent(tmp_path):
+    from fac.settings import Settings
+
+    factory = _session(tmp_path)
+    settings = Settings(
+        database_url=f"sqlite:///{tmp_path / 'import.db'}",
+        tenant_id="tenant-a",
+        edp_base_url="http://edp.test",
+        edp_api_key="secret",
+    )
+    with factory() as session:
+        adapter = EdpApiAdapter(session, settings, client=_FakeEdpClient())
+        first = adapter.import_orders(EdpImportRequest(tenant_id="tenant-a", limit=10))
+        second = adapter.import_orders(EdpImportRequest(tenant_id="tenant-a", limit=10))
+        assert first.status == "SUCCEEDED"
+        assert first.orders == 1
+        assert first.boms == 1
+        assert first.purchase_orders == 1
+        assert first.inventory == 1
+        assert "material_prices" in first.missing_data
+        assert second.accepted_count == 0
+        assert second.skipped_count >= first.accepted_count
+        assert session.query(EdpProjection).filter_by(object_type="Order").count() == 1
+        assert session.query(EdpProjection).filter_by(object_type="PurchaseOrder").count() == 1
+
+
+def test_real_edp_import_requires_endpoint_configuration(tmp_path):
+    from fac.settings import Settings
+
+    factory = _session(tmp_path)
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 'import.db'}", tenant_id="tenant-a")
+    with factory() as session:
+        try:
+            EdpApiAdapter(session, settings).import_orders(EdpImportRequest(tenant_id="tenant-a"))
+        except EdpApiError as exc:
+            assert "FAC_EDP_BASE_URL" in str(exc)
+        else:
+            raise AssertionError("missing EDP endpoint should fail closed")
