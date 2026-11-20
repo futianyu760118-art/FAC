@@ -27,15 +27,20 @@ class PriorityImportAdapter:
     def import_orders(
         self, request: EdpImportRequest, *, import_id: str | None = None
     ) -> EdpImportReport:
+        edp_error: Exception | None = None
         try:
             report = self.edp.import_orders(request, import_id=import_id)
-            report.source_chain = ["edp"]
-            return report
-        except EdpApiError as edp_error:
-            try:
-                report = self.ebms.import_orders(request, import_id=import_id)
-            except EbmsApiError as ebms_error:
-                raise SourceImportError(edp_error, ebms_error) from ebms_error
-            report.source_chain = ["edp", "ebms"]
-            report.fallback_reason = str(edp_error)
-            return report
+            if report.orders:
+                report.source_chain = ["edp"]
+                return report
+            edp_error = RuntimeError("EDP 未返回订单数据")
+        except EdpApiError as exc:
+            edp_error = exc
+        assert edp_error is not None
+        try:
+            report = self.ebms.import_orders(request, import_id=import_id)
+        except EbmsApiError as ebms_error:
+            raise SourceImportError(edp_error, ebms_error) from ebms_error
+        report.source_chain = ["edp", "ebms"]
+        report.fallback_reason = str(edp_error)
+        return report

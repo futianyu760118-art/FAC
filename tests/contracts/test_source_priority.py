@@ -70,6 +70,20 @@ def test_edp_unavailable_falls_back_to_ebms_and_records_reason():
     assert ebms.calls == 1
 
 
+def test_empty_edp_result_falls_back_to_ebms():
+    edp = _Adapter(result=EdpImportReport(import_id="import-1", source="edp", status="SUCCEEDED"))
+    ebms = _Adapter(result=_report("ebms"))
+
+    report = PriorityImportAdapter(edp=edp, ebms=ebms).import_orders(
+        EdpImportRequest(limit=10), import_id="import-1"
+    )
+
+    assert report.source == "ebms"
+    assert report.source_chain == ["edp", "ebms"]
+    assert report.fallback_reason == "EDP 未返回订单数据"
+    assert ebms.calls == 1
+
+
 def test_both_sources_unavailable_is_explicit_failure():
     edp = _Adapter(error=EdpApiError("EDP 未配置"))
     ebms = _Adapter(error=EbmsApiError("EBMS 未配置"))
